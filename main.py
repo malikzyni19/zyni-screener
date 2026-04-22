@@ -1056,9 +1056,11 @@ def get_api_status(exchange: str = "binance") -> Dict[str, Any]:
         }
 
 @app.route("/api/weight_status")
-@login_required
 def api_weight_status():
     """Return real API weight usage for current exchange"""
+    # No login_required — called frequently for UI counter
+    if not session.get("logged_in"):
+        return jsonify({"used":0,"limit":1200,"remaining":1200,"reset_in_seconds":60,"pct_used":0})
     exchange = request.args.get("exchange", "binance").lower()
     return jsonify(get_api_status(exchange))
 
