@@ -469,8 +469,8 @@ footer{position:relative;z-index:1;border-top:1px solid var(--border);background
 }
 .phone-glow.active{animation:phoneLightning 2.8s ease-in-out infinite}
 
-/* ── WORD TYPING SPANS ── */
-.word-span{display:inline-block;opacity:0;transform:translateY(6px);will-change:opacity,transform}
+/* ── LETTER TYPING SPANS ── */
+.letter-span{display:inline-block;opacity:0;will-change:opacity}
 </style>
 </head>
 <body>
@@ -1616,15 +1616,18 @@ function lwStartBounce(){
   if (!window.gsap || !window.ScrollTrigger) return;
   gsap.registerPlugin(ScrollTrigger);
 
-  /* ── Word-split helper ── */
-  function splitIntoWords(el) {
-    if (!el || el.dataset.wordSplit) return [];
-    el.dataset.wordSplit = '1';
+  /* ── Letter-split helper (true typing effect) ── */
+  function splitIntoLetters(el) {
+    if (!el || el.dataset.letterSplit) return [];
+    el.dataset.letterSplit = '1';
     var text = el.textContent.trim();
-    el.innerHTML = text.split(/\s+/).map(function(w) {
-      return '<span class="word-span">' + w + '&nbsp;</span>';
-    }).join('');
-    return Array.from(el.querySelectorAll('.word-span'));
+    var html = '';
+    for (var i = 0; i < text.length; i++) {
+      var ch = text[i] === ' ' ? '&nbsp;' : text[i];
+      html += '<span class="letter-span">' + ch + '</span>';
+    }
+    el.innerHTML = html;
+    return Array.from(el.querySelectorAll('.letter-span'));
   }
 
   /* ── Inject phone-glow under every phone ── */
@@ -1647,9 +1650,9 @@ function lwStartBounce(){
     var glow    = row.querySelector('.phone-glow');
     var textDir = isRev ? 48 : -48;
 
-    /* Word-split title and description */
-    var titleWords = splitIntoWords(title);
-    var descWords  = splitIntoWords(desc);
+    /* Letter-split title and description for typing effect */
+    var titleLetters = splitIntoLetters(title);
+    var descLetters  = splitIntoLetters(desc);
 
     /* Initial hidden states */
     gsap.set(phone, { opacity: 0, scale: 0.84, rotateY: isRev ? -16 : 16, y: 24 });
@@ -1669,18 +1672,18 @@ function lwStartBounce(){
     /* Pill badge */
     if (pill) tl.to(pill, { opacity: 1, x: 0, duration: 0.6, ease: 'power2.out' }, 0.2);
 
-    /* Title words appear one by one */
-    titleWords.forEach(function(span, i) {
-      tl.to(span, { opacity: 1, y: 0, duration: 0.38, ease: 'power2.out' }, 0.35 + i * 0.09);
+    /* Title — letter by letter typing */
+    titleLetters.forEach(function(span, i) {
+      tl.set(span, { opacity: 1 }, 0.32 + i * 0.042);
     });
 
-    /* Desc box fades in, then desc words type out */
+    /* Desc box fades in, then letters type out */
     if (descBox) {
-      tl.to(descBox, { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }, 0.5);
+      tl.to(descBox, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }, 0.38);
     }
-    var descStart = 0.6 + titleWords.length * 0.09;
-    descWords.forEach(function(span, i) {
-      tl.to(span, { opacity: 1, y: 0, duration: 0.3, ease: 'power1.out' }, descStart + i * 0.06);
+    var descStart = 0.42 + titleLetters.length * 0.042;
+    descLetters.forEach(function(span, i) {
+      tl.set(span, { opacity: 1 }, descStart + i * 0.028);
     });
 
     /* Phone glow activates */
@@ -1700,150 +1703,175 @@ function lwStartBounce(){
 })();
 
 /* ════════════════════════════════════════════════════════════
-   THREE.JS — hero terrain / floating planet
+   THREE.JS — hero Earth globe (spherical, glowing, rotating)
 ════════════════════════════════════════════════════════════ */
-(function initHeroTerrain() {
+(function initEarth() {
   if (!window.THREE) return;
   var canvas = document.getElementById('hero-terrain-canvas');
   if (!canvas) return;
 
-  var W = canvas.parentElement.offsetWidth  || 700;
-  var H = canvas.parentElement.offsetHeight || 700;
+  var W = canvas.parentElement.offsetWidth  || 660;
+  var H = canvas.parentElement.offsetHeight || 660;
 
   var renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
   renderer.setSize(W, H);
 
   var scene  = new THREE.Scene();
-  var camera = new THREE.PerspectiveCamera(42, W / H, 0.1, 200);
-  camera.position.set(0, 5.5, 11);
+  var camera = new THREE.PerspectiveCamera(36, W / H, 0.1, 200);
+  camera.position.set(0, 0, 9);
   camera.lookAt(0, 0, 0);
 
-  /* ── Terrain wave plane ── */
-  var SEG = 70;
-  var geo = new THREE.PlaneGeometry(16, 16, SEG, SEG);
-  var posAttr = geo.attributes.position;
+  /* ── Everything rotates together ── */
+  var globe = new THREE.Group();
+  scene.add(globe);
 
-  /* Wireframe overlay */
-  var wireMat = new THREE.MeshBasicMaterial({
-    color: 0x6366f1,
-    wireframe: true,
-    transparent: true,
-    opacity: 0.28,
-  });
-  var terrain = new THREE.Mesh(geo, wireMat);
-  terrain.rotation.x = -Math.PI / 2.6;
-  terrain.position.y = -1.5;
-  scene.add(terrain);
+  /* 1. CORE — solid dark sphere (occludes back-faces of lines) */
+  var coreGeo = new THREE.SphereGeometry(2.4, 64, 64);
+  var coreMat = new THREE.MeshBasicMaterial({ color: 0x060e1e });
+  globe.add(new THREE.Mesh(coreGeo, coreMat));
 
-  /* Solid fill (very dark, just to block wireframe behind) */
-  var fillMat = new THREE.MeshBasicMaterial({
-    color: 0x03080f,
-    transparent: true,
-    opacity: 0.55,
-    side: THREE.FrontSide,
-  });
-  var terrainFill = new THREE.Mesh(geo.clone(), fillMat);
-  terrainFill.rotation.x = -Math.PI / 2.6;
-  terrainFill.position.y = -1.52;
-  scene.add(terrainFill);
+  /* 2. MERIDIANS — longitude lines */
+  var MCOUNT = 20;
+  for (var m = 0; m < MCOUNT; m++) {
+    var mPts = [];
+    for (var a = 0; a <= 80; a++) {
+      var ang = (a / 80) * Math.PI * 2;
+      mPts.push(new THREE.Vector3(0, Math.cos(ang) * 2.42, Math.sin(ang) * 2.42));
+    }
+    var mGeo = new THREE.BufferGeometry().setFromPoints(mPts);
+    var mMat = new THREE.LineBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.20 });
+    var meridian = new THREE.Line(mGeo, mMat);
+    meridian.rotation.y = (m / MCOUNT) * Math.PI;
+    globe.add(meridian);
+  }
 
-  /* ── Floating sphere (planet core) ── */
-  var sGeo = new THREE.SphereGeometry(1.6, 48, 48);
-  var sMat = new THREE.MeshBasicMaterial({
-    color: 0x22d3ee,
-    transparent: true,
-    opacity: 0.07,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-  });
-  var sphere = new THREE.Mesh(sGeo, sMat);
-  sphere.position.set(0, 2.2, 0);
-  scene.add(sphere);
+  /* 3. PARALLELS — latitude lines */
+  var PCOUNT = 12;
+  for (var p = 1; p < PCOUNT; p++) {
+    var lat = ((p / PCOUNT) - 0.5) * Math.PI;
+    var r   = Math.cos(lat) * 2.42;
+    var yp  = Math.sin(lat) * 2.42;
+    var pPts = [];
+    for (var b = 0; b <= 80; b++) {
+      var a2 = (b / 80) * Math.PI * 2;
+      pPts.push(new THREE.Vector3(Math.cos(a2) * r, yp, Math.sin(a2) * r));
+    }
+    var pGeo = new THREE.BufferGeometry().setFromPoints(pPts);
+    var pMat = new THREE.LineBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.16 });
+    globe.add(new THREE.Line(pGeo, pMat));
+  }
 
-  /* Sphere wireframe ring */
-  var ringGeo = new THREE.TorusGeometry(2.2, 0.018, 3, 80);
-  var ringMat = new THREE.MeshBasicMaterial({
-    color: 0xa78bfa,
-    transparent: true,
-    opacity: 0.35,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-  });
-  var ring = new THREE.Mesh(ringGeo, ringMat);
-  ring.position.set(0, 2.2, 0);
-  ring.rotation.x = Math.PI / 2.4;
-  scene.add(ring);
+  /* 4. INNER GLOW — tight rim, teal */
+  var ig = new THREE.Mesh(
+    new THREE.SphereGeometry(2.46, 32, 32),
+    new THREE.MeshBasicMaterial({
+      color: 0x22d3ee, transparent: true, opacity: 0.08,
+      blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.BackSide,
+    })
+  );
+  globe.add(ig);
 
-  /* Second thinner ring */
-  var ring2Geo = new THREE.TorusGeometry(2.9, 0.010, 3, 80);
-  var ring2Mat = new THREE.MeshBasicMaterial({
-    color: 0x38bdf8,
-    transparent: true,
-    opacity: 0.20,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-  });
-  var ring2 = new THREE.Mesh(ring2Geo, ring2Mat);
-  ring2.position.set(0, 2.2, 0);
-  ring2.rotation.x = Math.PI / 2.4;
-  ring2.rotation.y = 0.6;
+  /* 5. ATMOSPHERE — mid indigo glow */
+  globe.add(new THREE.Mesh(
+    new THREE.SphereGeometry(2.75, 32, 32),
+    new THREE.MeshBasicMaterial({
+      color: 0x6366f1, transparent: true, opacity: 0.13,
+      blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.BackSide,
+    })
+  ));
+
+  /* 6. HALO — outer violet haze */
+  globe.add(new THREE.Mesh(
+    new THREE.SphereGeometry(3.15, 32, 32),
+    new THREE.MeshBasicMaterial({
+      color: 0xa78bfa, transparent: true, opacity: 0.07,
+      blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.BackSide,
+    })
+  ));
+
+  /* 7. ORBITAL RING — tilted cyan band */
+  var ring = new THREE.Mesh(
+    new THREE.TorusGeometry(3.35, 0.028, 4, 140),
+    new THREE.MeshBasicMaterial({
+      color: 0x22d3ee, transparent: true, opacity: 0.32,
+      blending: THREE.AdditiveBlending, depthWrite: false,
+    })
+  );
+  ring.rotation.x = Math.PI / 2.8;
+  scene.add(ring);   /* ring stays in world space, doesn't rotate with globe */
+
+  /* 8. SECOND RING — thin purple, opposite tilt */
+  var ring2 = new THREE.Mesh(
+    new THREE.TorusGeometry(3.8, 0.012, 3, 140),
+    new THREE.MeshBasicMaterial({
+      color: 0xa78bfa, transparent: true, opacity: 0.18,
+      blending: THREE.AdditiveBlending, depthWrite: false,
+    })
+  );
+  ring2.rotation.x = -Math.PI / 4;
+  ring2.rotation.z =  Math.PI / 6;
   scene.add(ring2);
 
-  /* ── Ambient particle field ── */
-  var ptCount = 200;
-  var ptGeo   = new THREE.BufferGeometry();
-  var ptPos   = new Float32Array(ptCount * 3);
-  for (var i = 0; i < ptCount; i++) {
-    ptPos[i*3]   = (Math.random() - 0.5) * 22;
-    ptPos[i*3+1] = (Math.random() - 0.5) * 16;
-    ptPos[i*3+2] = (Math.random() - 0.5) * 10 - 2;
+  /* 9. SURFACE DOTS — fake city lights scattered on sphere */
+  var dotCount = 60;
+  var dotPos   = new Float32Array(dotCount * 3);
+  for (var d = 0; d < dotCount; d++) {
+    var phi2   = Math.random() * Math.PI * 2;
+    var theta2 = Math.acos(2 * Math.random() - 1);
+    var sr     = 2.43;
+    dotPos[d*3]   = sr * Math.sin(theta2) * Math.cos(phi2);
+    dotPos[d*3+1] = sr * Math.sin(theta2) * Math.sin(phi2);
+    dotPos[d*3+2] = sr * Math.cos(theta2);
   }
-  ptGeo.setAttribute('position', new THREE.BufferAttribute(ptPos, 3));
-  var ptMat = new THREE.PointsMaterial({
-    color: 0x818cf8,
-    size: 0.06,
-    transparent: true,
-    opacity: 0.55,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-  });
-  scene.add(new THREE.Points(ptGeo, ptMat));
+  var dotGeo = new THREE.BufferGeometry();
+  dotGeo.setAttribute('position', new THREE.BufferAttribute(dotPos, 3));
+  globe.add(new THREE.Points(dotGeo, new THREE.PointsMaterial({
+    color: 0xfbbf24, size: 0.055, transparent: true, opacity: 0.70,
+    blending: THREE.AdditiveBlending, depthWrite: false,
+  })));
 
-  /* ── Animate ── */
+  /* 10. STAR FIELD — ambient background particles */
+  var starCount = 180;
+  var starPos   = new Float32Array(starCount * 3);
+  for (var s = 0; s < starCount; s++) {
+    var phi3   = Math.random() * Math.PI * 2;
+    var theta3 = Math.acos(2 * Math.random() - 1);
+    var sr2    = 5 + Math.random() * 5;
+    starPos[s*3]   = sr2 * Math.sin(theta3) * Math.cos(phi3);
+    starPos[s*3+1] = sr2 * Math.sin(theta3) * Math.sin(phi3);
+    starPos[s*3+2] = sr2 * Math.cos(theta3);
+  }
+  var starGeo = new THREE.BufferGeometry();
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+  scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({
+    color: 0x818cf8, size: 0.045, transparent: true, opacity: 0.55,
+    blending: THREE.AdditiveBlending, depthWrite: false,
+  })));
+
+  /* ── ANIMATE ── */
   var t = 0;
   function animate() {
     requestAnimationFrame(animate);
-    t += 0.007;
+    t += 0.005;
 
-    /* Wave the terrain vertices */
-    for (var v = 0; v < posAttr.count; v++) {
-      var x = posAttr.getX(v);
-      var y = posAttr.getY(v);
-      posAttr.setZ(v,
-        Math.sin(x * 0.45 + t) * 0.45 +
-        Math.cos(y * 0.40 + t * 0.75) * 0.35
-      );
-    }
-    posAttr.needsUpdate = true;
-    terrainFill.geometry.attributes.position.array.set(posAttr.array);
-    terrainFill.geometry.attributes.position.needsUpdate = true;
+    /* Globe rotates on Y axis — slow and cinematic */
+    globe.rotation.y += 0.0022;
 
-    /* Slow planet / ring rotation */
-    sphere.rotation.y += 0.003;
-    ring.rotation.z   += 0.004;
-    ring2.rotation.z  -= 0.002;
+    /* Gentle vertical float */
+    globe.position.y  = Math.sin(t * 0.38) * 0.18;
+    ring.position.y   = globe.position.y;
+    ring2.position.y  = globe.position.y;
 
-    /* Planet gentle float */
-    sphere.position.y = 2.2 + Math.sin(t * 0.55) * 0.25;
-    ring.position.y   = sphere.position.y;
-    ring2.position.y  = sphere.position.y;
+    /* Rings counter-rotate slowly */
+    ring.rotation.z  += 0.0015;
+    ring2.rotation.z -= 0.0009;
 
     renderer.render(scene, camera);
   }
   animate();
 
-  /* Resize */
+  /* ── RESIZE ── */
   window.addEventListener('resize', function() {
     var W2 = canvas.parentElement.offsetWidth;
     var H2 = canvas.parentElement.offsetHeight;
