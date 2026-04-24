@@ -419,39 +419,58 @@ footer{position:relative;z-index:1;border-top:1px solid var(--border);background
 .lw-imp-ring{position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);width:0;height:0;border-radius:50%;border:2px solid rgba(34,211,238,0);pointer-events:none;z-index:200}
 
 
-/* ── THREE.JS CANVAS ── */
-#three-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:1}
+/* ── THREE.JS GLOBAL CANVAS ── */
+#three-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}
 
-/* ── FEATURE ROW 3D ENHANCEMENTS ── */
-.feat-row{overflow:visible!important}
-.phone-side{perspective:1200px;position:relative}
-.phone-3d-wrap{transform-style:preserve-3d;will-change:transform}
+/* ── HERO LAYOUT: 50 / 50 split ── */
+.hero{flex-direction:row!important;text-align:left!important;align-items:center!important;
+  padding:0 0 0 0!important;min-height:92vh;gap:0;overflow:hidden}
+.hero-left{flex:1;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;
+  padding:80px 48px 60px 48px;z-index:2;min-width:0}
+.hero-right{flex:1;position:relative;height:92vh;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#hero-terrain-canvas{position:absolute;inset:0;width:100%!important;height:100%!important;display:block}
 
-/* Floating orbs around phone */
-.feat-orb{position:absolute;border-radius:50%;pointer-events:none;opacity:0;z-index:10;filter:blur(2px)}
-.feat-orb-a{width:56px;height:56px;background:radial-gradient(circle,rgba(99,102,241,0.7) 0%,transparent 70%);top:-18px;right:10px}
-.feat-orb-b{width:40px;height:40px;background:radial-gradient(circle,rgba(34,211,238,0.65) 0%,transparent 70%);bottom:30px;left:-10px}
-.feat-orb-c{width:72px;height:72px;background:radial-gradient(circle,rgba(167,139,250,0.5) 0%,transparent 70%);top:45%;right:-24px}
-.feat-orb-d{width:28px;height:28px;background:radial-gradient(circle,rgba(56,189,248,0.8) 0%,transparent 70%);top:15%;left:5px}
+/* Realign hero children to left */
+.hero-eyebrow{animation:fadeUp .8s ease both}
+.hero-h1{text-align:left;animation:fadeUp .8s .1s ease both}
+.hero-sub{text-align:left;max-width:460px;animation:fadeUp .8s .2s ease both}
+.hero-btns{justify-content:flex-start!important;animation:fadeUp .8s .3s ease both}
+.hero-bottom{justify-content:flex-start!important;animation:fadeUp .8s .4s ease both;max-width:640px}
 
-/* Hero glow button enhancement */
+/* Mobile */
+@media(max-width:960px){
+  .hero{flex-direction:column!important;text-align:center!important}
+  .hero-left{align-items:center!important;padding:60px 20px 30px!important}
+  .hero-right{width:100%;height:320px;min-height:320px;flex-shrink:0}
+  .hero-h1,.hero-sub{text-align:center}
+  .hero-btns,.hero-bottom{justify-content:center!important}
+}
+
+/* ── HERO BUTTON GLOW ── */
 .btn-main{position:relative;z-index:1}
 .btn-main-glow{position:absolute;inset:-4px;border-radius:54px;background:linear-gradient(135deg,#22d3ee,#6366f1,#a78bfa);opacity:0;filter:blur(14px);z-index:-1;transition:opacity .4s;pointer-events:none}
 .btn-main:hover .btn-main-glow{opacity:0.55}
 .btn-main:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 20px 50px rgba(34,211,238,0.4)}
 
-/* Hero floating shapes */
-.hero-shape{position:absolute;border-radius:50%;pointer-events:none;filter:blur(1px);opacity:0;animation:heroShapeFloat var(--dur,6s) ease-in-out infinite alternate}
-@keyframes heroShapeFloat{from{transform:translate(0,0) rotate(0deg)}to{transform:translate(var(--tx,10px),var(--ty,-15px)) rotate(var(--tr,45deg))}}
+/* ── PHONE SIDE ── */
+.phone-side{perspective:1200px;position:relative}
+.phone{will-change:transform}
 
-/* Feature text animation initial states — set by GSAP */
-.gsap-feat-pill,.gsap-feat-title,.gsap-feat-desc{will-change:transform,opacity}
+/* Phone lightning glow underneath */
+.phone-glow{
+  position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);
+  width:160px;height:28px;border-radius:50%;pointer-events:none;opacity:0;
+  background:radial-gradient(ellipse at center,rgba(99,102,241,0.75) 0%,rgba(34,211,238,0.35) 45%,transparent 72%);
+  filter:blur(7px);
+}
+@keyframes phoneLightning{
+  0%,100%{opacity:0.45;width:140px;filter:blur(7px)}
+  50%{opacity:0.85;width:180px;filter:blur(9px)}
+}
+.phone-glow.active{animation:phoneLightning 2.8s ease-in-out infinite}
 
-/* Phone continuous float — added by GSAP after trigger */
-.phone{transform-style:preserve-3d;will-change:transform}
-
-/* Premium section glow accent */
-.section-glow{position:absolute;pointer-events:none;border-radius:50%;filter:blur(80px);opacity:0.07;z-index:0}
+/* ── WORD TYPING SPANS ── */
+.word-span{display:inline-block;opacity:0;transform:translateY(6px);will-change:opacity,transform}
 </style>
 </head>
 <body>
@@ -600,6 +619,8 @@ footer{position:relative;z-index:1;border-top:1px solid var(--border);background
 
 <!-- HERO -->
 <section class="hero">
+  <!-- LEFT: text content -->
+  <div class="hero-left">
   <div class="hero-eyebrow"><span class="hero-eyebrow-dot"></span><span data-i18n="hero_eyebrow">Smart Money Concepts · Real Time</span></div>
   <h1 class="hero-h1">
     <div class="l1" data-i18n="hero_h1_l1">Trade Like</div>
@@ -685,6 +706,11 @@ footer{position:relative;z-index:1;border-top:1px solid var(--border);background
       <div class="vol-mini-lbl" data-i18n="vol_label">Exchange Volume 24H</div>
       <div class="vol-mini-bars" id="vol-mini"></div>
     </div>
+  </div>
+  </div><!-- /hero-left -->
+  <!-- RIGHT: 3D terrain -->
+  <div class="hero-right">
+    <canvas id="hero-terrain-canvas"></canvas>
   </div>
 </section>
 
@@ -1584,124 +1610,246 @@ function lwStartBounce(){
 })();
 
 /* ════════════════════════════════════════════════════════════
-   GSAP — hero shapes injection + feature ScrollTrigger
+   GSAP — feature ScrollTrigger + phone glow + word typing
 ════════════════════════════════════════════════════════════ */
 (function initGSAP() {
   if (!window.gsap || !window.ScrollTrigger) return;
   gsap.registerPlugin(ScrollTrigger);
 
-  /* ── Hero floating CSS shapes ── */
-  var hero = document.querySelector('.hero');
-  if (hero) {
-    var heroShapeDefs = [
-      { w:80, h:80, top:'12%', left:'8%',  tx:18,  ty:-22, tr:60,  dur:7,   clr:'rgba(99,102,241,0.18)',  br:'50%' },
-      { w:50, h:50, top:'70%', left:'5%',  tx:-12, ty:14,  tr:-45, dur:9,   clr:'rgba(34,211,238,0.20)',  br:'8px' },
-      { w:60, h:60, top:'20%', right:'6%', tx:14,  ty:-18, tr:90,  dur:8,   clr:'rgba(167,139,250,0.18)', br:'50%' },
-      { w:36, h:36, top:'55%', right:'9%', tx:-8,  ty:20,  tr:-30, dur:6,   clr:'rgba(56,189,248,0.22)',  br:'6px' },
-      { w:100,h:100,top:'80%', right:'3%', tx:20,  ty:-10, tr:120, dur:11,  clr:'rgba(124,58,237,0.12)',  br:'50%' },
-      { w:28, h:28, top:'40%', left:'3%',  tx:-6,  ty:-16, tr:-60, dur:7.5, clr:'rgba(34,211,238,0.25)',  br:'4px' },
-    ];
-
-    heroShapeDefs.forEach(function(d) {
-      var el = document.createElement('div');
-      el.className = 'hero-shape';
-      el.style.cssText = [
-        'position:absolute',
-        'pointer-events:none',
-        'border-radius:' + d.br,
-        'width:' + d.w + 'px',
-        'height:' + d.h + 'px',
-        'background:' + d.clr,
-        'filter:blur(2px)',
-        d.top   ? 'top:' + d.top     : '',
-        d.left  ? 'left:' + d.left   : '',
-        d.right ? 'right:' + d.right : '',
-        '--tx:' + d.tx + 'px',
-        '--ty:' + d.ty + 'px',
-        '--tr:' + d.tr + 'deg',
-        '--dur:' + d.dur + 's',
-      ].filter(Boolean).join(';');
-      el.setAttribute('aria-hidden','true');
-      hero.appendChild(el);
-
-      /* Fade in with GSAP then CSS animation handles the float */
-      gsap.to(el, { opacity: 1, duration: 1.5, delay: 0.5 + Math.random() });
-    });
+  /* ── Word-split helper ── */
+  function splitIntoWords(el) {
+    if (!el || el.dataset.wordSplit) return [];
+    el.dataset.wordSplit = '1';
+    var text = el.textContent.trim();
+    el.innerHTML = text.split(/\s+/).map(function(w) {
+      return '<span class="word-span">' + w + '&nbsp;</span>';
+    }).join('');
+    return Array.from(el.querySelectorAll('.word-span'));
   }
 
-  /* ── Inject orbs into each phone-side ── */
+  /* ── Inject phone-glow under every phone ── */
   document.querySelectorAll('.phone-side').forEach(function(ps) {
-    ['a','b','c','d'].forEach(function(k) {
-      var orb = document.createElement('div');
-      orb.className = 'feat-orb feat-orb-' + k;
-      orb.setAttribute('aria-hidden','true');
-      ps.appendChild(orb);
-    });
+    ps.style.position = 'relative';
+    var glow = document.createElement('div');
+    glow.className = 'phone-glow';
+    glow.setAttribute('aria-hidden', 'true');
+    ps.appendChild(glow);
   });
 
-  /* ── Feature row ScrollTrigger animations ── */
+  /* ── Feature row ScrollTrigger ── */
   document.querySelectorAll('.feat-row').forEach(function(row, idx) {
     var isRev   = row.classList.contains('rev');
     var phone   = row.querySelector('.phone');
     var pill    = row.querySelector('.feat-pill');
     var title   = row.querySelector('.feat-title');
+    var desc    = row.querySelector('.feat-desc');
     var descBox = row.querySelector('.feat-desc-box');
-    var orbs    = row.querySelectorAll('.feat-orb');
-    var textDir = isRev ? 50 : -50;
+    var glow    = row.querySelector('.phone-glow');
+    var textDir = isRev ? 48 : -48;
 
-    /* Set initial hidden states */
-    gsap.set(phone,   { opacity: 0, scale: 0.82, rotateY: isRev ? -18 : 18, y: 28 });
+    /* Word-split title and description */
+    var titleWords = splitIntoWords(title);
+    var descWords  = splitIntoWords(desc);
+
+    /* Initial hidden states */
+    gsap.set(phone, { opacity: 0, scale: 0.84, rotateY: isRev ? -16 : 16, y: 24 });
     if (pill)    gsap.set(pill,    { opacity: 0, x: textDir });
-    if (title)   gsap.set(title,   { opacity: 0, x: textDir * 0.65 });
-    if (descBox) gsap.set(descBox, { opacity: 0, y: 18 });
+    if (descBox) gsap.set(descBox, { opacity: 0, y: 16 });
 
     var tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: row,
-        start: 'top 78%',
-        once: true,
-      }
+      scrollTrigger: { trigger: row, start: 'top 78%', once: true }
     });
 
-    /* Phone scales in with tilt */
+    /* Phone slides + scales in */
     tl.to(phone, {
       opacity: 1, scale: 1, rotateY: 0, y: 0,
-      duration: 1.1, ease: 'power3.out',
+      duration: 1.2, ease: 'power3.out',
     }, 0);
 
-    /* Text slides in from side */
-    if (pill)    tl.to(pill,    { opacity: 1, x: 0, duration: 0.65, ease: 'power2.out' }, 0.18);
-    if (title)   tl.to(title,   { opacity: 1, x: 0, duration: 0.75, ease: 'power3.out' }, 0.30);
-    if (descBox) tl.to(descBox, { opacity: 1, y: 0, duration: 0.65, ease: 'power2.out' }, 0.48);
+    /* Pill badge */
+    if (pill) tl.to(pill, { opacity: 1, x: 0, duration: 0.6, ease: 'power2.out' }, 0.2);
 
-    /* Orbs pop in */
-    orbs.forEach(function(orb, j) {
-      tl.to(orb, { opacity: 1, scale: 1, duration: 0.9, ease: 'back.out(1.7)' }, 0.25 + j * 0.12);
+    /* Title words appear one by one */
+    titleWords.forEach(function(span, i) {
+      tl.to(span, { opacity: 1, y: 0, duration: 0.38, ease: 'power2.out' }, 0.35 + i * 0.09);
     });
 
-    /* After trigger: continuous phone float */
+    /* Desc box fades in, then desc words type out */
+    if (descBox) {
+      tl.to(descBox, { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }, 0.5);
+    }
+    var descStart = 0.6 + titleWords.length * 0.09;
+    descWords.forEach(function(span, i) {
+      tl.to(span, { opacity: 1, y: 0, duration: 0.3, ease: 'power1.out' }, descStart + i * 0.06);
+    });
+
+    /* Phone glow activates */
+    if (glow) {
+      tl.to(glow, { opacity: 1, duration: 0.9, ease: 'power2.out' }, 0.6);
+      tl.call(function() { glow.classList.add('active'); });
+    }
+
+    /* Continuous phone float loop after trigger */
     tl.call(function() {
       gsap.to(phone, {
-        y: -14,
-        duration: 2.8 + idx * 0.25,
-        ease: 'sine.inOut',
-        yoyo: true,
-        repeat: -1,
-      });
-
-      /* Orb random drift */
-      orbs.forEach(function(orb, j) {
-        gsap.to(orb, {
-          x: (Math.random() - 0.5) * 24,
-          y: (Math.random() - 0.5) * 24,
-          rotation: 180 * (j % 2 === 0 ? 1 : -1),
-          duration: 3.5 + j * 1.2,
-          ease: 'sine.inOut',
-          yoyo: true,
-          repeat: -1,
-        });
+        y: -12, duration: 3 + idx * 0.2,
+        ease: 'sine.inOut', yoyo: true, repeat: -1,
       });
     });
+  });
+})();
+
+/* ════════════════════════════════════════════════════════════
+   THREE.JS — hero terrain / floating planet
+════════════════════════════════════════════════════════════ */
+(function initHeroTerrain() {
+  if (!window.THREE) return;
+  var canvas = document.getElementById('hero-terrain-canvas');
+  if (!canvas) return;
+
+  var W = canvas.parentElement.offsetWidth  || 700;
+  var H = canvas.parentElement.offsetHeight || 700;
+
+  var renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+  renderer.setSize(W, H);
+
+  var scene  = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(42, W / H, 0.1, 200);
+  camera.position.set(0, 5.5, 11);
+  camera.lookAt(0, 0, 0);
+
+  /* ── Terrain wave plane ── */
+  var SEG = 70;
+  var geo = new THREE.PlaneGeometry(16, 16, SEG, SEG);
+  var posAttr = geo.attributes.position;
+
+  /* Wireframe overlay */
+  var wireMat = new THREE.MeshBasicMaterial({
+    color: 0x6366f1,
+    wireframe: true,
+    transparent: true,
+    opacity: 0.28,
+  });
+  var terrain = new THREE.Mesh(geo, wireMat);
+  terrain.rotation.x = -Math.PI / 2.6;
+  terrain.position.y = -1.5;
+  scene.add(terrain);
+
+  /* Solid fill (very dark, just to block wireframe behind) */
+  var fillMat = new THREE.MeshBasicMaterial({
+    color: 0x03080f,
+    transparent: true,
+    opacity: 0.55,
+    side: THREE.FrontSide,
+  });
+  var terrainFill = new THREE.Mesh(geo.clone(), fillMat);
+  terrainFill.rotation.x = -Math.PI / 2.6;
+  terrainFill.position.y = -1.52;
+  scene.add(terrainFill);
+
+  /* ── Floating sphere (planet core) ── */
+  var sGeo = new THREE.SphereGeometry(1.6, 48, 48);
+  var sMat = new THREE.MeshBasicMaterial({
+    color: 0x22d3ee,
+    transparent: true,
+    opacity: 0.07,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+  var sphere = new THREE.Mesh(sGeo, sMat);
+  sphere.position.set(0, 2.2, 0);
+  scene.add(sphere);
+
+  /* Sphere wireframe ring */
+  var ringGeo = new THREE.TorusGeometry(2.2, 0.018, 3, 80);
+  var ringMat = new THREE.MeshBasicMaterial({
+    color: 0xa78bfa,
+    transparent: true,
+    opacity: 0.35,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+  var ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.position.set(0, 2.2, 0);
+  ring.rotation.x = Math.PI / 2.4;
+  scene.add(ring);
+
+  /* Second thinner ring */
+  var ring2Geo = new THREE.TorusGeometry(2.9, 0.010, 3, 80);
+  var ring2Mat = new THREE.MeshBasicMaterial({
+    color: 0x38bdf8,
+    transparent: true,
+    opacity: 0.20,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+  var ring2 = new THREE.Mesh(ring2Geo, ring2Mat);
+  ring2.position.set(0, 2.2, 0);
+  ring2.rotation.x = Math.PI / 2.4;
+  ring2.rotation.y = 0.6;
+  scene.add(ring2);
+
+  /* ── Ambient particle field ── */
+  var ptCount = 200;
+  var ptGeo   = new THREE.BufferGeometry();
+  var ptPos   = new Float32Array(ptCount * 3);
+  for (var i = 0; i < ptCount; i++) {
+    ptPos[i*3]   = (Math.random() - 0.5) * 22;
+    ptPos[i*3+1] = (Math.random() - 0.5) * 16;
+    ptPos[i*3+2] = (Math.random() - 0.5) * 10 - 2;
+  }
+  ptGeo.setAttribute('position', new THREE.BufferAttribute(ptPos, 3));
+  var ptMat = new THREE.PointsMaterial({
+    color: 0x818cf8,
+    size: 0.06,
+    transparent: true,
+    opacity: 0.55,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+  scene.add(new THREE.Points(ptGeo, ptMat));
+
+  /* ── Animate ── */
+  var t = 0;
+  function animate() {
+    requestAnimationFrame(animate);
+    t += 0.007;
+
+    /* Wave the terrain vertices */
+    for (var v = 0; v < posAttr.count; v++) {
+      var x = posAttr.getX(v);
+      var y = posAttr.getY(v);
+      posAttr.setZ(v,
+        Math.sin(x * 0.45 + t) * 0.45 +
+        Math.cos(y * 0.40 + t * 0.75) * 0.35
+      );
+    }
+    posAttr.needsUpdate = true;
+    terrainFill.geometry.attributes.position.array.set(posAttr.array);
+    terrainFill.geometry.attributes.position.needsUpdate = true;
+
+    /* Slow planet / ring rotation */
+    sphere.rotation.y += 0.003;
+    ring.rotation.z   += 0.004;
+    ring2.rotation.z  -= 0.002;
+
+    /* Planet gentle float */
+    sphere.position.y = 2.2 + Math.sin(t * 0.55) * 0.25;
+    ring.position.y   = sphere.position.y;
+    ring2.position.y  = sphere.position.y;
+
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  /* Resize */
+  window.addEventListener('resize', function() {
+    var W2 = canvas.parentElement.offsetWidth;
+    var H2 = canvas.parentElement.offsetHeight;
+    renderer.setSize(W2, H2);
+    camera.aspect = W2 / H2;
+    camera.updateProjectionMatrix();
   });
 })();
 </script>
