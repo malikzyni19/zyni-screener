@@ -78,8 +78,8 @@
 [data-theme="light"] .dot:not([style]){background:#d1d5db!important}
 [data-theme="light"] .header-right{color:#475569!important}
 /* Theme toggle */
-.theme-toggle{background:none;border:1px solid #1e3040;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;line-height:1;-webkit-tap-highlight-color:transparent}
-.theme-toggle:hover{border-color:#22d3ee50;box-shadow:0 0 8px rgba(34,211,238,.2)}
+.theme-toggle{background:none;border:1px solid var(--border);border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;line-height:1;-webkit-tap-highlight-color:transparent}
+.theme-toggle:hover{border-color:rgba(34,211,238,.4);box-shadow:0 0 8px rgba(34,211,238,.2)}
 [data-theme="light"] .theme-toggle{border-color:#e2e8f0}
 /* FIX 1 — Full-screen ripple */
 .theme-ripple{position:fixed;border-radius:50%;pointer-events:none;z-index:99999;transform:scale(0);transition:none}
@@ -88,7 +88,7 @@
 /* Animations */
 @keyframes slideIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 .result-card{animation:slideIn .28s ease both}
-.skeleton{background:linear-gradient(90deg,#0d1525 25%,#1e3040 50%,#0d1525 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:12px;height:76px;border:1px solid #1e2d3d}
+.skeleton{background:linear-gradient(90deg,var(--bg-input) 25%,var(--border) 50%,var(--bg-input) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:12px;height:76px;border:1px solid var(--border2)}
 [data-theme="light"] .skeleton{background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;border-color:#cbd5e1}
 @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 @keyframes dataPulse{0%{box-shadow:0 0 0 0 rgba(34,211,238,.4)}70%{box-shadow:0 0 0 8px rgba(34,211,238,0)}100%{box-shadow:0 0 0 0 rgba(34,211,238,0)}}
@@ -99,8 +99,8 @@
 .pairs-toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;align-items:center}
 .pairs-toolbar input,.pairs-toolbar select{flex:1;min-width:120px}
 .quick-btns{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
-.quick-btn{background:#080e1a;border:1px solid #1e3040;color:#64748b;border-radius:7px;padding:5px 11px;cursor:pointer;font-family:JetBrains Mono,monospace;font-size:11px;transition:all .2s}
-.quick-btn:hover{border-color:#22d3ee40;color:#22d3ee}
+.quick-btn{background:var(--bg-input);border:1px solid var(--border);color:var(--text-secondary);border-radius:7px;padding:5px 11px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:11px;transition:all .2s}
+.quick-btn:hover{border-color:rgba(34,211,238,.35);color:var(--accent)}
 [data-theme="light"] .quick-btn{background:rgba(255,255,255,.88)!important;backdrop-filter:blur(6px)!important;border-color:#d0daea!important;color:#475569!important;box-shadow:0 1px 4px rgba(0,0,0,.05),inset 0 1px 0 rgba(255,255,255,.9)!important}
 [data-theme="light"] .quick-btn:hover{border-color:rgba(2,132,199,.5)!important;color:#0284c7!important;background:rgba(224,242,254,.7)!important;box-shadow:0 4px 12px rgba(2,132,199,.12)!important}
 .watchlist-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
@@ -782,7 +782,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   display:flex;align-items:center;gap:5px;
   padding:5px 11px;border-radius:50px;
   font-size:10px;font-weight:500;
-  color:#64748b;border:1px solid rgba(34,211,238,0.15);
+  color:var(--text-secondary);border:1px solid rgba(34,211,238,0.15);
   background:rgba(34,211,238,0.04);
   cursor:pointer;transition:all .2s;
   font-family:'JetBrains Mono',monospace;
@@ -812,7 +812,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   font-family:'JetBrains Mono',monospace;font-size:11px;outline:none;
 }
 .hnav-lang-list{max-height:220px;overflow-y:auto;padding:4px}
-.hnav-lang-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;cursor:pointer;font-size:11px;color:#64748b;transition:background .15s}
+.hnav-lang-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;cursor:pointer;font-size:11px;color:var(--text-secondary);transition:background .15s}
 .hnav-lang-item:hover{background:rgba(34,211,238,0.08);color:#e2e8f0}
 .hnav-lang-item.active{background:rgba(34,211,238,0.1);color:#22d3ee}
 
@@ -1045,7 +1045,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 /* ── RSI coloring ── */
 .rsi-ob{color:#f87171}
 .rsi-os{color:#4ade80}
-.rsi-norm{color:#64748b}
+.rsi-norm{color:var(--text-secondary)}
 [data-theme="light"] .rsi-ob{color:#b91c1c!important}
 [data-theme="light"] .rsi-os{color:#15803d!important}
 [data-theme="light"] .rsi-norm{color:#475569!important}
@@ -1206,7 +1206,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
       </div>
       <div>
         <div class="card">
-          <div class="card-title">RESULTS <span id="resultCount" style="font-size:10px;color:#64748b;font-weight:400;margin-left:6px"></span></div>
+          <div class="card-title">RESULTS <span id="resultCount" style="font-size:10px;color:var(--text-secondary);font-weight:400;margin-left:6px"></span></div>
           <div id="scanSummary" class="scan-summary" style="display:none">
             <div class="summary-stat"><span class="summary-label">SETUPS</span><span class="summary-value" id="summaryTotal">0</span></div>
             <div class="summary-stat"><span class="summary-label">BULLISH</span><span class="summary-value bull" id="summaryBull">0</span></div>
@@ -1235,8 +1235,8 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
       </div>
       <!-- Search + Sort -->
       <div class="pairs-toolbar">
-        <input id="pairSearch" type="text" placeholder="Search pairs..." oninput="filterPairsList()" style="background:#080e1a;color:#e2e8f0;border:1px solid #1e3040;border-radius:8px;padding:8px 10px;font-family:JetBrains Mono,monospace;font-size:12px;outline:none">
-        <select id="pairSort" onchange="sortPairsList()" style="background:#080e1a;color:#e2e8f0;border:1px solid #1e3040;border-radius:8px;padding:8px 10px;font-family:JetBrains Mono,monospace;font-size:12px;outline:none">
+        <input id="pairSearch" type="text" placeholder="Search pairs..." oninput="filterPairsList()" style="background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:'JetBrains Mono',monospace;font-size:12px;outline:none">
+        <select id="pairSort" onchange="sortPairsList()" style="background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:'JetBrains Mono',monospace;font-size:12px;outline:none">
           <option value="volume">Volume ↓</option>
           <option value="change">Change % ↓</option>
           <option value="alpha">A → Z</option>
@@ -1244,17 +1244,17 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
       </div>
       <!-- Manual add -->
       <div style="margin-bottom:10px">
-        <textarea id="manualPairsInput" placeholder="Paste pairs: BTCUSDT,ETHUSDT,SOLUSDT..." rows="2" style="width:100%;background:#080e1a;color:#e2e8f0;border:1px solid #1e3040;border-radius:8px;padding:8px 10px;font-family:JetBrains Mono,monospace;font-size:12px;outline:none;resize:vertical"></textarea>
+        <textarea id="manualPairsInput" placeholder="Paste pairs: BTCUSDT,ETHUSDT,SOLUSDT..." rows="2" style="width:100%;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;resize:vertical"></textarea>
         <div style="display:flex;gap:8px;margin-top:6px;align-items:center">
           <button class="quick-btn" onclick="addManualPairs()" style="padding:7px 14px">+ Add Pairs</button>
-          <span id="manualAddMsg" style="font-size:11px;color:#64748b"></span>
+          <span id="manualAddMsg" style="font-size:11px;color:var(--text-secondary)"></span>
         </div>
       </div>
       <!-- Watchlist -->
       <div class="watchlist-row">
-        <input id="watchlistName" type="text" placeholder="Watchlist name..." style="background:#080e1a;color:#e2e8f0;border:1px solid #1e3040;border-radius:8px;padding:7px 10px;font-family:JetBrains Mono,monospace;font-size:12px;outline:none">
+        <input id="watchlistName" type="text" placeholder="Watchlist name..." style="background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-family:'JetBrains Mono',monospace;font-size:12px;outline:none">
         <button class="quick-btn" onclick="saveWatchlist()" style="padding:7px 12px">💾 Save</button>
-        <select id="loadWatchlistSel" onchange="loadWatchlist(this.value)" style="background:#080e1a;color:#e2e8f0;border:1px solid #1e3040;border-radius:8px;padding:7px 10px;font-family:JetBrains Mono,monospace;font-size:12px;outline:none;flex:1">
+        <select id="loadWatchlistSel" onchange="loadWatchlist(this.value)" style="background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;flex:1">
           <option value="">Load watchlist...</option>
         </select>
       </div>
@@ -1276,14 +1276,14 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
             <button id="btnModeMatch" class="mode-pill active" onclick="setScanMode('match')">◈ Match</button>
             <button id="btnModeFilter" class="mode-pill" onclick="setScanMode('filter')">⊟ Filter Only</button>
           </div>
-          <div style="font-size:10px;color:#64748b;margin-top:6px" id="scanModeDesc">Show all pairs — FVG / OB / FIB badges appear as extras</div>
+          <div style="font-size:10px;color:var(--text-secondary);margin-top:6px" id="scanModeDesc">Show all pairs — FVG / OB / FIB badges appear as extras</div>
         </div>
         <div id="filterSignalBox" class="filter-signals" style="display:none">
           <input id="filterFVG" type="checkbox" style="display:none">
           <input id="filterOB"  type="checkbox" style="display:none">
           <input id="filterFIB" type="checkbox" style="display:none">
         </div>
-        <div id="filterModeHint" style="display:none;font-size:9px;color:#22d3ee;margin-top:4px;padding:5px 8px;background:rgba(34,211,238,0.05);border-radius:6px;border:1px solid #0d2035">
+        <div id="filterModeHint" style="display:none;font-size:9px;color:var(--accent);margin-top:4px;padding:5px 8px;background:rgba(34,211,238,0.05);border-radius:6px;border:1px solid var(--border2)">
           ⊟ Filter active — uses checked signals from OB / FVG / FIB sections below (AND logic)
         </div>
       </div>
@@ -1333,7 +1333,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
         <div class="setting-title">ORDER BLOCK <span class="tip-icon" onclick="toggleTip('tip-ob-intro')">ⓘ</span></div>
         <div class="tip-box" id="tip-ob-intro">An <b>Order Block (OB)</b> is a zone where large buyers or sellers placed big orders before a strong move. Price often returns to these zones. This section controls how the screener detects and filters Order Block setups.</div>
         <div class="subrow" style="margin-bottom:6px">
-          <label><input id="useObModule" type="checkbox" checked onchange="toggleWlSection('obSubOptions',this.checked)"> <b>Order Block</b> <span style="font-size:9px;color:#64748b">— enable OB detection</span></label>
+          <label><input id="useObModule" type="checkbox" checked onchange="toggleWlSection('obSubOptions',this.checked)"> <b>Order Block</b> <span style="font-size:9px;color:var(--text-secondary)">— enable OB detection</span></label>
         </div>
         <div id="obSubOptions">
         <div class="row3" style="margin-bottom:8px">
@@ -1390,7 +1390,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
         <div class="setting-title">FVG <span class="tip-icon" onclick="toggleTip('tip-fvg-intro')">ⓘ</span></div>
         <div class="tip-box" id="tip-fvg-intro">A <b>Fair Value Gap (FVG)</b> is a price gap left behind when the market moves very quickly, leaving an area that was not properly traded through. Price often returns to fill these gaps. Use these filters to control which FVGs the screener includes.</div>
         <div class="subrow" style="margin-bottom:6px">
-          <label><input id="useFvgModule" type="checkbox" checked onchange="toggleWlSection('fvgSubOptions',this.checked)"> <b>Fair Value Gap</b> <span style="font-size:9px;color:#64748b">— enable FVG detection</span></label>
+          <label><input id="useFvgModule" type="checkbox" checked onchange="toggleWlSection('fvgSubOptions',this.checked)"> <b>Fair Value Gap</b> <span style="font-size:9px;color:var(--text-secondary)">— enable FVG detection</span></label>
         </div>
         <div id="fvgSubOptions">
         <div class="subrow">
@@ -1471,7 +1471,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
         <div class="tip-box" id="tip-fib-atr">Minimum swing size to qualify as a valid Fib leg, measured in ATR (Average True Range). <b>1.5</b> means the swing must be at least 1.5x the ATR. Higher = stricter, only large swings qualify. Lower = more legs found but may include noise. 1.5 is recommended.</div>
         <div class="tip-box" id="tip-fib-approach">Distance from a Fib level at which the APPROACH alert fires. <b>2.0%</b> means you get alerted when price is within 2% of a level but hasn't touched it yet. The REACTION alert uses Tolerance % instead.</div>
         <div style="margin-bottom:8px">
-          <div style="font-size:10px;color:#64748b;margin-bottom:6px">FIB LEVELS <span class="tip-icon" onclick="toggleTip('tip-fib-levels')">ⓘ</span></div>
+          <div style="font-size:10px;color:var(--text-secondary);margin-bottom:6px">FIB LEVELS <span class="tip-icon" onclick="toggleTip('tip-fib-levels')">ⓘ</span></div>
           <div class="tip-box" id="tip-fib-levels">Choose which Fibonacci retracement levels to watch. <b>0.5</b> = 50% pullback. <b>0.618</b> = the "golden ratio" — the most watched level by traders. <b>0.705</b> = slightly deeper, often creates strong entries. <b>0.786</b> = deep retracement, close to the full swing. Tap a chip to toggle a level on or off.</div>
           <div class="chips">
             <span class="fib-chip active" data-value="0.5">0.5</span>
@@ -1496,7 +1496,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
       <div class="setting-section">
         <div class="setting-title">BREAKER BLOCK <span class="tip-icon" onclick="toggleTip('tip-brk-intro')">ⓘ</span></div>
         <div class="tip-box" id="tip-brk-intro">A Breaker Block is a mitigated Order Block that has flipped direction. When a bullish OB is broken down, it becomes a bearish Breaker. Price often reacts when it returns to the breaker zone.</div>
-        <label><input id="useBreakerModule" type="checkbox" onchange="toggleWlSection('breakerSubOptions',this.checked)"> <b>Breaker Block</b> <span style="font-size:9px;color:#64748b">— enable Breaker Block detection</span></label>
+        <label><input id="useBreakerModule" type="checkbox" onchange="toggleWlSection('breakerSubOptions',this.checked)"> <b>Breaker Block</b> <span style="font-size:9px;color:var(--text-secondary)">— enable Breaker Block detection</span></label>
         <div id="breakerSubOptions" style="display:none">
           <div class="row3" style="margin-top:8px">
             <div class="field">
@@ -1585,9 +1585,9 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
   <div id="page-athatl" class="page">
     <div class="card">
       <div class="card-title">TRUE ATH / ATL SCANNER
-        <span style="font-size:9px;color:#64748b;font-weight:400;letter-spacing:.5px">· Full history since listing</span>
+        <span style="font-size:9px;color:var(--text-secondary);font-weight:400;letter-spacing:.5px">· Full history since listing</span>
       </div>
-      <div style="font-size:10px;color:#64748b;margin-bottom:10px;line-height:1.5">
+      <div style="font-size:10px;color:var(--text-secondary);margin-bottom:10px;line-height:1.5">
         True ATH &amp; ATL use full 1D history since listing. Window only controls status detection.
       </div>
       <div class="row3">
@@ -1630,7 +1630,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
       </div>
       <div class="tip-box" id="tip-ath-near">How close (in %) current price must be to the true ATH or ATL to be included. <b>1%</b> = very close to the level. <b>3–5%</b> = near the level with some room. Higher values will find more results. Used for "At Level Now" and "Near Level" status filters.</div>
       <button class="btn-primary" onclick="scanAthAtl()" style="margin-top:4px">▶ SCAN TRUE ATH / ATL</button>
-      <div id="athScanNote" style="display:none;font-size:10px;color:#64748b;margin-top:8px">⏳ First scan fetches full history per pair — may take ~30s. Results cache for 4 hours.</div>
+      <div id="athScanNote" style="display:none;font-size:10px;color:var(--text-secondary);margin-top:8px">⏳ First scan fetches full history per pair — may take ~30s. Results cache for 4 hours.</div>
       <div id="athResults" class="results" style="margin-top:12px"><div class="empty">Click Scan ATH / ATL to begin</div></div>
     </div>
   </div>
@@ -1689,8 +1689,8 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
               <span style="font-size:11px;color:#22d3ee;font-weight:600">Prior Momentum Gate</span>
             </label>
             <div style="padding:6px 0 0 20px;display:flex;gap:8px;align-items:center">
-              <span style="font-size:10px;color:#64748b">Candles required:</span>
-              <input id="biasPriorCandlesReq" type="number" value="2" min="1" max="5" style="width:50px;background:#080e1a;color:#e2e8f0;border:1px solid #1e3040;border-radius:6px;padding:4px 6px;font-size:11px">
+              <span style="font-size:10px;color:var(--text-secondary)">Candles required:</span>
+              <input id="biasPriorCandlesReq" type="number" value="2" min="1" max="5" style="width:50px;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:11px">
             </div>
           </div>
 
@@ -1703,14 +1703,14 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
             <div style="padding:6px 0 0 20px;display:flex;flex-direction:column;gap:6px">
               <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:10px;color:#94a3b8">
                 <input type="checkbox" id="biasSigWick" checked> Strong Wick ≥
-                <input id="biasSigWickMin" type="number" value="35" min="10" max="80" style="width:45px;background:#080e1a;color:#e2e8f0;border:1px solid #1e3040;border-radius:6px;padding:3px 5px;font-size:10px">%
+                <input id="biasSigWickMin" type="number" value="35" min="10" max="80" style="width:45px;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);border-radius:6px;padding:3px 5px;font-size:10px">%
               </label>
               <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:10px;color:#94a3b8">
                 <input type="checkbox" id="biasSigEngulf" checked> Engulfing candle
               </label>
               <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:10px;color:#94a3b8">
                 <input type="checkbox" id="biasSigStrongBody" checked> Strong body ≥
-                <input id="biasSigBodyMin" type="number" value="55" min="30" max="90" style="width:45px;background:#080e1a;color:#e2e8f0;border:1px solid #1e3040;border-radius:6px;padding:3px 5px;font-size:10px">%
+                <input id="biasSigBodyMin" type="number" value="55" min="30" max="90" style="width:45px;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);border-radius:6px;padding:3px 5px;font-size:10px">%
               </label>
             </div>
           </div>
@@ -1722,8 +1722,8 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
               <span style="font-size:11px;color:#22d3ee;font-weight:600">Body Gate</span>
             </label>
             <div style="padding:6px 0 0 20px;display:flex;gap:8px;align-items:center">
-              <span style="font-size:10px;color:#64748b">Min body %:</span>
-              <input id="biasBodyMinPct" type="number" value="20" min="5" max="80" style="width:50px;background:#080e1a;color:#e2e8f0;border:1px solid #1e3040;border-radius:6px;padding:4px 6px;font-size:11px">
+              <span style="font-size:10px;color:var(--text-secondary)">Min body %:</span>
+              <input id="biasBodyMinPct" type="number" value="20" min="5" max="80" style="width:50px;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:11px">
             </div>
           </div>
 
@@ -1734,15 +1734,15 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
               <span style="font-size:11px;color:#22d3ee;font-weight:600">Volume Gate</span>
             </label>
             <div style="padding:6px 0 0 20px;display:flex;gap:8px;align-items:center">
-              <span style="font-size:10px;color:#64748b">Min multiplier:</span>
-              <input id="biasVolMultiplier" type="number" value="1.2" step="0.1" min="1.0" max="3.0" style="width:55px;background:#080e1a;color:#e2e8f0;border:1px solid #1e3040;border-radius:6px;padding:4px 6px;font-size:11px">x
+              <span style="font-size:10px;color:var(--text-secondary)">Min multiplier:</span>
+              <input id="biasVolMultiplier" type="number" value="1.2" step="0.1" min="1.0" max="3.0" style="width:55px;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:11px">x
             </div>
           </div>
 
           <!-- Min conditions -->
-          <div style="display:flex;align-items:center;gap:8px;padding-top:4px;border-top:1px solid #0d2035">
-            <span style="font-size:10px;color:#64748b">Min gates to pass:</span>
-            <select id="biasMinConditions" style="background:#080e1a;color:#e2e8f0;border:1px solid #1e3040;border-radius:6px;padding:4px 8px;font-size:11px">
+          <div style="display:flex;align-items:center;gap:8px;padding-top:4px;border-top:1px solid var(--border2)">
+            <span style="font-size:10px;color:var(--text-secondary)">Min gates to pass:</span>
+            <select id="biasMinConditions" style="background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px">
               <option value="1">1 (relaxed)</option>
               <option value="2" selected>2 (balanced)</option>
               <option value="3">3 (strict)</option>
@@ -1779,7 +1779,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
     <div class="card">
       <div class="card-title">
         📡 LIVE MONITOR
-        <span id="wlCount" style="font-size:10px;color:#64748b;font-weight:400;margin-left:6px"></span>
+        <span id="wlCount" style="font-size:10px;color:var(--text-secondary);font-weight:400;margin-left:6px"></span>
         <span style="margin-left:auto;display:flex;gap:6px;align-items:center">
           <span id="wlSelectBar" style="display:none;gap:6px;align-items:center">
             <span id="wlSelectCount" style="font-size:10px;color:#22d3ee;font-family:JetBrains Mono,monospace"></span>
@@ -1800,17 +1800,17 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 
       <!-- Settings Panel -->
       <div style="margin-bottom:10px">
-        <div class="fvg-accordion-header" onclick="_toggleWlSettings()" style="width:100%;justify-content:space-between;border-color:#1e304060;color:#64748b">
+        <div class="fvg-accordion-header" onclick="_toggleWlSettings()" style="width:100%;justify-content:space-between;border-color:var(--border);color:var(--text-secondary)">
           <span style="display:flex;align-items:center;gap:6px">
             <span id="wlSettingsArrow" class="fvg-acc-arrow">▶</span>
             <span style="font-size:10px;letter-spacing:1px">⚙ SCAN SETTINGS</span>
           </span>
-          <span id="wlSettingsSummary" style="font-size:9px;color:#475569"></span>
+          <span id="wlSettingsSummary" style="font-size:9px;color:var(--text-secondary)"></span>
         </div>
         <div id="wlSettingsBody" style="display:none;padding:12px;background:#030810;border:1px solid #0d1a2a;border-radius:0 0 8px 8px;margin-top:-1px">
 
           <!-- Scan For -->
-          <div style="font-size:9px;color:#3d5570;letter-spacing:1px;margin-bottom:8px">SCAN FOR</div>
+          <div style="font-size:9px;color:var(--text-muted);letter-spacing:1px;margin-bottom:8px">SCAN FOR</div>
           <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">
 
             <!-- OB -->
@@ -1839,21 +1839,21 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
                 <div style="font-size:9px;color:#475569;margin-bottom:5px">Age Range (candles) per TF</div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap">
                   <div style="flex:1;min-width:80px">
-                    <div style="font-size:9px;color:#64748b;margin-bottom:4px">15m Min/Max</div>
+                    <div style="font-size:9px;color:var(--text-secondary);margin-bottom:4px">15m Min/Max</div>
                     <div style="display:flex;gap:4px">
                       <input id="wlFVGMin15m" type="number" value="0" style="width:44px;background:#080e1a;color:#e2e8f0;border:1px solid #1e3040;border-radius:6px;padding:5px;font-size:11px;font-family:JetBrains Mono,monospace;outline:none" onchange="saveWlSettings()">
                       <input id="wlFVGMax15m" type="number" value="5"  style="width:44px;background:#080e1a;color:#e2e8f0;border:1px solid #1e3040;border-radius:6px;padding:5px;font-size:11px;font-family:JetBrains Mono,monospace;outline:none" onchange="saveWlSettings()">
                     </div>
                   </div>
                   <div style="flex:1;min-width:80px">
-                    <div style="font-size:9px;color:#64748b;margin-bottom:4px">1H Min/Max</div>
+                    <div style="font-size:9px;color:var(--text-secondary);margin-bottom:4px">1H Min/Max</div>
                     <div style="display:flex;gap:4px">
                       <input id="wlFVGMin1h" type="number" value="0"  style="width:44px;background:#080e1a;color:#e2e8f0;border:1px solid #1e3040;border-radius:6px;padding:5px;font-size:11px;font-family:JetBrains Mono,monospace;outline:none" onchange="saveWlSettings()">
                       <input id="wlFVGMax1h" type="number" value="10" style="width:44px;background:#080e1a;color:#e2e8f0;border:1px solid #1e3040;border-radius:6px;padding:5px;font-size:11px;font-family:JetBrains Mono,monospace;outline:none" onchange="saveWlSettings()">
                     </div>
                   </div>
                   <div style="flex:1;min-width:80px">
-                    <div style="font-size:9px;color:#64748b;margin-bottom:4px">4H Min/Max</div>
+                    <div style="font-size:9px;color:var(--text-secondary);margin-bottom:4px">4H Min/Max</div>
                     <div style="display:flex;gap:4px">
                       <input id="wlFVGMin4h" type="number" value="0"  style="width:44px;background:#080e1a;color:#e2e8f0;border:1px solid #1e3040;border-radius:6px;padding:5px;font-size:11px;font-family:JetBrains Mono,monospace;outline:none" onchange="saveWlSettings()">
                       <input id="wlFVGMax4h" type="number" value="15" style="width:44px;background:#080e1a;color:#e2e8f0;border:1px solid #1e3040;border-radius:6px;padding:5px;font-size:11px;font-family:JetBrains Mono,monospace;outline:none" onchange="saveWlSettings()">
