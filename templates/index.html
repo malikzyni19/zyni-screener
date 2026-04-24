@@ -729,6 +729,166 @@ body{
 .scp-arrow{margin-left:auto;color:rgba(255,255,255,0.2);font-size:14px;transition:transform .2s}
 .scp-opt:hover .scp-arrow{transform:translateX(4px);color:rgba(255,255,255,0.5)}
 
+/* ════════════════════════════════════════════
+   UI/UX PRO MAX — NEURAL TERMINAL DESIGN LAYER
+   Style: Cyberpunk Terminal  |  Palette: Deep Space + Electric Cyan + Violet
+════════════════════════════════════════════ */
+
+/* ── Custom scrollbar ── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:rgba(2,6,14,.4)}
+::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#22d3ee,#818cf8);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#38ecff,#a5b4fc)}
+*{scrollbar-width:thin;scrollbar-color:rgba(34,211,238,.4) transparent}
+
+/* ── Text selection ── */
+::selection{background:rgba(34,211,238,.22);color:#fff}
+[data-theme="light"] ::selection{background:rgba(2,132,199,.2);color:#0f172a}
+
+/* ── Global focus ring ── */
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid rgba(34,211,238,.55);outline-offset:2px}
+[data-theme="light"] button:focus-visible,[data-theme="light"] input:focus-visible,[data-theme="light"] select:focus-visible{outline-color:rgba(2,132,199,.55)}
+
+/* ── Tabular numbers on all mono data ── */
+.summary-value,.symbol,.pair-symbol,.wl-symbol,.price-tag,.countdown,.clock,.api-nums{font-feature-settings:"tnum";font-variant-numeric:tabular-nums}
+
+/* ── Animated rainbow accent line at bottom of header ── */
+.header{position:relative;overflow:visible}
+.header::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent 0%,#22d3ee 20%,#818cf8 45%,#f472b6 60%,#818cf8 75%,#22d3ee 90%,transparent 100%);background-size:300% 100%;animation:headerRainbow 5s linear infinite;opacity:.7;z-index:1}
+@keyframes headerRainbow{0%{background-position:0% 0}100%{background-position:300% 0}}
+[data-theme="light"] .header::after{background:linear-gradient(90deg,transparent 0%,#0284c7 20%,#6366f1 50%,#0891b2 80%,transparent 100%);background-size:300% 100%;opacity:.5}
+
+/* ── smc-title-bar animated width pulse ── */
+.smc-title-bar{animation:barPulse 3s ease-in-out infinite}
+@keyframes barPulse{0%,100%{width:60px;opacity:.55}50%{width:130px;opacity:1}}
+
+/* ── Clock enhanced glow ── */
+.clock{text-shadow:0 0 14px rgba(34,211,238,.65);letter-spacing:2px}
+[data-theme="light"] .clock{text-shadow:none}
+
+/* ── Countdown glow ── */
+.countdown{text-shadow:0 0 10px rgba(34,211,238,.5)}
+
+/* ── Welcome name stronger bloom ── */
+.welcome-sub{letter-spacing:1.5px}
+
+/* ── Card shine layer on hover ── */
+.card{position:relative}
+.card::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.04) 0%,transparent 55%);border-radius:16px;pointer-events:none;opacity:0;transition:opacity .3s}
+.card:hover::after{opacity:1}
+
+/* ── Input neon focus glow ── */
+.field input:focus,.field select:focus{border-color:rgba(34,211,238,.6)!important;box-shadow:0 0 0 3px rgba(34,211,238,.07),0 0 20px rgba(34,211,238,.14)!important}
+[data-theme="light"] .field input:focus,[data-theme="light"] .field select:focus{border-color:#0284c7!important;box-shadow:0 0 0 3px rgba(2,132,199,.14),0 0 16px rgba(2,132,199,.1)!important}
+
+/* ── Watchlist input focus ── */
+.wl-input:focus{border-color:rgba(34,211,238,.5)!important;box-shadow:0 0 0 3px rgba(34,211,238,.06),0 0 16px rgba(34,211,238,.12)!important}
+
+/* ── Live dot stronger bloom ── */
+.live-dot{width:9px;height:9px;box-shadow:0 0 12px #22c55e,0 0 28px rgba(34,197,94,.5),0 0 48px rgba(34,197,94,.18)}
+[data-theme="light"] .live-dot{box-shadow:0 0 8px rgba(22,163,74,.7),0 0 20px rgba(22,163,74,.35)!important}
+
+/* ── Symbol text glow ── */
+.symbol{letter-spacing:.5px;text-shadow:0 0 10px rgba(240,246,255,.25)}
+.wl-symbol{text-shadow:0 0 10px rgba(240,246,255,.25)}
+[data-theme="light"] .symbol,[data-theme="light"] .wl-symbol{text-shadow:none!important}
+
+/* ── Score ring number glow ── */
+.score-ring .score-ring-num{text-shadow:0 0 12px rgba(34,211,238,.55)}
+
+/* ── Summary value animated glow ── */
+@keyframes valueGlow{0%,100%{filter:brightness(1)}50%{filter:brightness(1.25) drop-shadow(0 0 6px currentColor)}}
+.summary-value.bull{animation:valueGlow 3s ease-in-out infinite}
+.summary-value.bear{animation:valueGlow 3s ease-in-out infinite .5s}
+[data-theme="light"] .summary-value.bull,[data-theme="light"] .summary-value.bear{animation:none}
+
+/* ── Result card slide-in stagger ── */
+.result-card:nth-child(1){animation-delay:.02s}.result-card:nth-child(2){animation-delay:.04s}
+.result-card:nth-child(3){animation-delay:.06s}.result-card:nth-child(4){animation-delay:.08s}
+.result-card:nth-child(5){animation-delay:.10s}.result-card:nth-child(6){animation-delay:.12s}
+.result-card:nth-child(7){animation-delay:.14s}.result-card:nth-child(8){animation-delay:.16s}
+
+/* ── Empty state styled box ── */
+.empty{border:1px dashed rgba(34,211,238,.12);border-radius:12px;background:rgba(34,211,238,.02)}
+[data-theme="light"] .empty{border-color:rgba(2,132,199,.18)!important;background:rgba(2,132,199,.02)!important}
+
+/* ── Auto scan badge pulse ring ── */
+.auto-scan-badge{animation:autoPulse 2.5s ease-in-out infinite}
+@keyframes autoPulse{0%,100%{box-shadow:0 0 0 0 rgba(34,211,238,.3)}60%{box-shadow:0 0 0 5px rgba(34,211,238,0)}}
+
+/* ── Exchange bar premium glass ── */
+.ex-bar{background:linear-gradient(180deg,rgba(2,5,12,.97) 0%,rgba(2,6,14,.95) 100%);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid rgba(34,211,238,.07);box-shadow:0 2px 24px rgba(0,0,0,.5)}
+[data-theme="light"] .ex-bar{background:linear-gradient(180deg,rgba(255,255,255,.97) 0%,rgba(244,249,255,.95) 100%)!important;backdrop-filter:blur(16px)!important;-webkit-backdrop-filter:blur(16px)!important;border-bottom-color:rgba(2,132,199,.1)!important;box-shadow:0 2px 20px rgba(2,132,199,.08)!important}
+
+/* ── View toggle buttons ── */
+.view-btn{backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:8px;transition:all .2s}
+.view-btn.active{background:#22d3ee;color:#020408;font-weight:700;box-shadow:0 0 20px rgba(34,211,238,.45),inset 0 1px 0 rgba(255,255,255,.2);text-shadow:none}
+[data-theme="light"] .view-btn{background:rgba(255,255,255,.88)!important;color:#475569!important;border-color:#d0daea!important;box-shadow:0 1px 4px rgba(0,0,0,.06)!important}
+[data-theme="light"] .view-btn.active{background:linear-gradient(135deg,#0284c7,#06b6d4)!important;color:#fff!important;border-color:transparent!important;box-shadow:0 4px 16px rgba(2,132,199,.4)!important;text-shadow:none!important}
+
+/* ── Heatmap cell glass + glow hover ── */
+.heat-cell{backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:transform .2s,box-shadow .2s;border-radius:10px}
+.heat-cell:hover{transform:scale(1.06)}
+.heat-cell.bull:hover{box-shadow:0 4px 24px rgba(34,197,94,.28),0 0 0 1px rgba(34,197,94,.3)}
+.heat-cell.bear:hover{box-shadow:0 4px 24px rgba(239,68,68,.28),0 0 0 1px rgba(239,68,68,.3)}
+
+/* ── Order flow tab active glow ── */
+.of-tab.active{text-shadow:0 0 8px rgba(34,211,238,.6)}
+
+/* ── Zone verdict box-shadows ── */
+.zone-verdict.extreme,.zone-verdict.institutional{box-shadow:0 0 18px rgba(239,68,68,.22)}
+.zone-verdict.heavy{box-shadow:0 0 14px rgba(249,115,22,.18)}
+.zone-verdict.stacked{box-shadow:0 0 14px rgba(168,85,247,.18)}
+.zone-verdict.moderate{box-shadow:0 0 10px rgba(234,179,8,.12)}
+
+/* ── Setting title with animated underline ── */
+.setting-title{position:relative;padding-bottom:7px;margin-bottom:12px}
+.setting-title::after{content:'';position:absolute;bottom:0;left:0;width:28px;height:1.5px;background:linear-gradient(90deg,#22d3ee,rgba(34,211,238,0));border-radius:2px;transition:width .3s}
+.setting-section:hover .setting-title::after{width:56px}
+[data-theme="light"] .setting-title::after{background:linear-gradient(90deg,#0891b2,transparent)}
+
+/* ── Setting section border ── */
+.setting-section{border-bottom:1px solid rgba(34,211,238,.07)}
+[data-theme="light"] .setting-section{border-bottom-color:rgba(2,132,199,.08)!important}
+
+/* ── Pair stats up/down stronger ── */
+.up{color:#4ade80;text-shadow:0 0 8px rgba(74,222,128,.4)}
+.down{color:#f87171;text-shadow:0 0 8px rgba(248,113,113,.4)}
+[data-theme="light"] .up{color:#15803d;text-shadow:none}
+[data-theme="light"] .down{color:#b91c1c;text-shadow:none}
+
+/* ── Star btn hover bloom ── */
+.star-btn.starred{text-shadow:0 0 14px rgba(251,191,36,.8)}
+
+/* ── Scan overlay ring glow ── */
+.scan-popup .scan-ring{box-shadow:0 0 20px rgba(34,211,238,.3)}
+
+/* ── wl-new-badge pulse ── */
+.wl-new-badge{animation:newBadgePulse 2s ease-in-out infinite}
+
+/* ── Screener contact popup shine ── */
+.screener-contact-popup::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(34,211,238,.15),transparent);border-radius:0 0 24px 24px}
+
+/* ── Mobile enhancements ── */
+@media(max-width:600px){
+  .welcome-name{font-size:14px;letter-spacing:1px}
+  .card{border-radius:12px;padding:0 14px 14px}
+  .card-title{font-size:10px;letter-spacing:1px;padding:10px 14px;border-radius:10px 10px 0 0;margin:0 -14px 14px}
+  .card-title::before{height:11px}
+  .summary-value{font-size:18px}
+  .tabs{gap:1px;padding:4px;border-radius:8px}
+  .tab{padding:8px 10px;font-size:11px;letter-spacing:.3px}
+  .smc-title{font-size:8px;letter-spacing:2px}
+  .wrap{padding:10px}
+  .result-card{padding:10px 12px;border-radius:10px}
+  .badge{padding:2px 7px;font-size:9px}
+  .scan-summary{border-radius:10px}
+  .summary-label{font-size:8px}
+  .btn-primary,.btn-secondary{padding:11px 14px;font-size:12px}
+  .card:hover{transform:none}
+  .pair-item:hover{transform:none}
+}
+
 </style>
 </head>
 <body>
