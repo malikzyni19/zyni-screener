@@ -65,7 +65,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;overf
 /* ── NAV ── */
 nav{position:relative;z-index:90;display:flex;align-items:center;justify-content:space-between;padding:12px 28px;border-bottom:1px solid var(--border);background:var(--nav-bg);backdrop-filter:blur(16px);gap:10px}
 /* ── ZyNi SMC brand — premium animated identity ── */
-.nav-logo{font-family:'Outfit',sans-serif;font-size:20px;font-weight:800;text-decoration:none;display:flex;align-items:center;gap:10px;letter-spacing:0px;animation:navBreathe 7s ease-in-out infinite}
+.nav-logo{font-family:'Outfit',sans-serif;font-size:20px;font-weight:800;text-decoration:none;display:flex;align-items:center;gap:10px;letter-spacing:0px;animation:navBreathe 7s ease-in-out infinite;flex-shrink:0}
 @keyframes navBreathe{0%,100%{transform:scale(1)}50%{transform:scale(1.013)}}
 .nav-logo-zyni{background:linear-gradient(135deg,var(--text) 0%,#22d3ee 60%,#a5f3fc 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:zyniGlow 5s ease-in-out infinite alternate}
 @keyframes zyniGlow{from{filter:drop-shadow(0 0 4px rgba(34,211,238,0.10))}to{filter:drop-shadow(0 0 10px rgba(34,211,238,0.38))}}
@@ -112,6 +112,21 @@ nav{position:relative;z-index:90;display:flex;align-items:center;justify-content
   .nav-right{gap:8px}
   .theme-toggle{width:40px;height:40px;font-size:18px;border-radius:10px}
   .nav-cta{padding:10px 26px;font-size:12px}
+}
+/* Mobile nav — brand always fully visible */
+@media(max-width:768px){
+  .nav-tag{display:none}
+  .nav-logo{font-size:19px;gap:8px}
+}
+@media(max-width:480px){
+  nav{padding:10px 14px;gap:8px}
+  .nav-logo{font-size:18px;gap:6px}
+  .nav-logo-dot{width:8px;height:8px}
+  .nav-logo-zyni,.nav-logo-smc{letter-spacing:0}
+  .nav-btn .btn-txt{display:none}
+  .nav-btn{padding:7px 10px;border-radius:10px}
+  .nav-right{gap:4px}
+  .nav-cta{padding:8px 16px;font-size:10px;letter-spacing:0}
 }
 
 /* ── HERO ── */
