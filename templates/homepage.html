@@ -442,66 +442,32 @@ footer{position:relative;z-index:1;border-top:1px solid var(--border);background
   min-width:260px;text-align:center;vertical-align:bottom;
 }
 
-/* ── BITCOIN BACKGROUND SCENE ── */
-.hero-btc-scene{
-  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  z-index:1;pointer-events:none;
-  width:580px;height:580px;display:flex;align-items:center;justify-content:center;
+/* ── HERO 3D CANVAS ── */
+#hero-3d-canvas{
+  position:absolute;top:0;left:0;width:100%;height:100%;
+  z-index:1;pointer-events:none;display:block;
 }
-.btc-symbol{
-  font-size:320px;font-weight:900;line-height:1;user-select:none;font-family:'Outfit',sans-serif;
-  background:linear-gradient(145deg,#92400e 0%,#f59e0b 25%,#fbbf24 50%,#fde68a 65%,#f97316 80%,#d97706 100%);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-  opacity:0.10;
-  animation:btcFloat 10s ease-in-out infinite,btcPulse 5s ease-in-out infinite alternate;
+.hero-label-layer{
+  position:absolute;top:0;left:0;width:100%;height:100%;
+  z-index:3;pointer-events:none;overflow:hidden;
 }
-@keyframes btcFloat{
-  0%,100%{transform:translateY(0) rotateY(0deg) scale(1)}
-  33%{transform:translateY(-16px) rotateY(4deg) scale(1.015)}
-  66%{transform:translateY(-8px) rotateY(-3deg) scale(1.01)}
-}
-@keyframes btcPulse{
-  from{filter:drop-shadow(0 0 30px rgba(251,191,36,0.20)) drop-shadow(0 0 70px rgba(245,158,11,0.08))}
-  to{filter:drop-shadow(0 0 70px rgba(251,191,36,0.55)) drop-shadow(0 0 140px rgba(245,158,11,0.22))}
-}
-
-/* ── ORBIT SYSTEM ── */
-.orbit-system{
-  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  z-index:1;pointer-events:none;width:520px;height:520px;
-}
-.orbit-ring-css{
-  position:absolute;inset:0;border-radius:50%;
-  border:1px solid rgba(251,191,36,0.20);
-  box-shadow:0 0 24px rgba(251,191,36,0.06) inset;
-  animation:orbitSpin 38s linear infinite;
-}
-.orbit-ring-css-2{
-  position:absolute;inset:50px;border-radius:50%;
-  border:1px solid rgba(34,211,238,0.12);
-  animation:orbitSpin 25s linear infinite reverse;
-}
-@keyframes orbitSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-.orbit-label{
-  position:absolute;top:50%;left:50%;
-  font-size:10px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;
-  font-family:'DM Sans',sans-serif;color:rgba(251,191,36,0.60);
-  white-space:nowrap;background:rgba(3,8,15,0.5);
-  padding:3px 10px;border-radius:50px;
-  border:1px solid rgba(251,191,36,0.18);
-  backdrop-filter:blur(6px);
-}
-.orbit-dot{
-  position:absolute;top:50%;left:50%;
-  width:6px;height:6px;border-radius:50%;margin:-3px 0 0 -3px;
+.orbit-pill{
+  position:absolute;
+  font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  font-family:'DM Sans',sans-serif;
+  white-space:nowrap;background:rgba(3,8,15,0.65);
+  padding:4px 12px;border-radius:50px;
+  backdrop-filter:blur(10px);
+  transform:translate(-50%,-50%);
+  color:rgba(255,255,255,0.85);
+  transition:opacity 0.25s;
+  pointer-events:none;
 }
 
 @media(max-width:960px){
-  .hero-btc-scene{width:320px;height:320px}
-  .btc-symbol{font-size:180px}
-  .orbit-system{width:310px;height:310px}
   .hero-bottom{flex-direction:column}
   #hero-rw{min-width:160px}
+  #hero-3d-canvas{opacity:0.7}
 }
 
 /* ── HERO BUTTON GLOW ── */
@@ -510,9 +476,16 @@ footer{position:relative;z-index:1;border-top:1px solid var(--border);background
 .btn-main:hover .btn-main-glow{opacity:0.55}
 .btn-main:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 20px 50px rgba(34,211,238,0.4)}
 
-/* ── PHONE SIDE ── */
+/* ── PHONE SIDE — 3D glass box ── */
 .phone-side{perspective:1200px;position:relative}
-.phone{will-change:transform}
+.phone{will-change:transform;transform-style:preserve-3d}
+
+/* Glossy highlight overlay on phone screen */
+.phone-gloss{
+  position:absolute;top:0;left:0;right:0;height:55%;border-radius:34px 34px 0 0;
+  background:linear-gradient(160deg,rgba(255,255,255,0.07) 0%,rgba(255,255,255,0.02) 60%,transparent 100%);
+  pointer-events:none;z-index:10;
+}
 
 /* Phone lightning glow underneath */
 .phone-glow{
@@ -526,6 +499,11 @@ footer{position:relative;z-index:1;border-top:1px solid var(--border);background
   50%{opacity:0.85;width:180px;filter:blur(9px)}
 }
 .phone-glow.active{animation:phoneLightning 2.8s ease-in-out infinite}
+
+/* Screenshot slide transitions */
+.p-slide{display:none;width:100%;transition:none}
+.p-slide.active{display:block}
+.p-slide img{width:100%;display:block;max-height:500px;object-fit:cover;object-position:top}
 
 /* ── LETTER TYPING SPANS ── */
 .letter-span{display:inline-block;opacity:0;will-change:opacity}
@@ -781,7 +759,7 @@ footer{position:relative;z-index:1;border-top:1px solid var(--border);background
     <div class="feat-text">
       <div class="feat-pill" style="color:#22d3ee;border-color:rgba(34,211,238,.25);background:rgba(34,211,238,.07)">📊 <span data-i18n="mod01_tag">Module 01</span></div>
       <h3 class="feat-title" data-i18n="mod01_title">Order Block Detection</h3>
-      <div class="feat-desc-box"><p class="feat-desc" data-i18n="mod01_desc">Scan 400+ pairs in one tap. Every Order Block near price appears instantly — score, strength and direction across 15m, 1H and 4H.</p></div>
+      <div class="feat-desc-box"><p class="feat-desc" id="ob-desc" data-i18n="mod01_desc">Scan 400+ pairs in one tap. Every Order Block near price appears instantly — score, strength and direction across 15m, 1H and 4H.</p></div>
     </div>
     <div class="phone-side">
       <div class="phone" style="box-shadow:0 0 0 1px rgba(255,255,255,.07),0 0 0 2px rgba(0,0,0,.95),0 40px 80px rgba(0,0,0,.65),0 0 80px rgba(34,211,238,0.1)">
@@ -1350,16 +1328,47 @@ const slideState={};const slideTimers={};
 Object.keys(MODS).forEach(id=>{slideState[id]=0;slideTimers[id]=setInterval(()=>goSlide(id,(slideState[id]+1)%MODS[id].n),3200)});
 function goSlide(id,idx){
   const mod=MODS[id];
+  const prevIdx=slideState[id];
+  if(prevIdx===idx)return;
+  /* Hide outgoing slide with GSAP if available, else simple hide */
+  const ps=document.getElementById(`${id}-s${prevIdx}`);
+  if(ps){
+    if(window.gsap){
+      gsap.to(ps,{opacity:0,scale:1.03,duration:0.28,ease:'power2.in',onComplete:()=>{ps.classList.remove('active');ps.style.cssText=''}});
+    } else {
+      ps.classList.remove('active');
+    }
+  }
+  /* Update dots */
   for(let i=0;i<mod.n;i++){
-    const s=document.getElementById(`${id}-s${i}`);const d=document.getElementById(`${id}-d${i}`);
-    if(s)s.classList.remove('active');
+    const d=document.getElementById(`${id}-d${i}`);
     if(d){d.classList.remove('on');d.style.cssText=''}
   }
-  const cs=document.getElementById(`${id}-s${idx}`);const cd=document.getElementById(`${id}-d${idx}`);
-  if(cs)cs.classList.add('active');
+  /* Show incoming slide */
+  const cs=document.getElementById(`${id}-s${idx}`);
+  const cd=document.getElementById(`${id}-d${idx}`);
+  if(cs){
+    cs.classList.add('active');
+    if(window.gsap){
+      gsap.fromTo(cs,
+        {opacity:0,scale:0.97,filter:'brightness(1.3)'},
+        {opacity:1,scale:1,filter:'brightness(1)',duration:0.48,ease:'power2.out'}
+      );
+    }
+  }
   if(cd){cd.classList.add('on');cd.style.background=mod.color;cd.style.boxShadow=`0 0 8px ${mod.color}`;cd.style.width='22px';cd.style.borderRadius='4px'}
+  /* Sync description with GSAP text transition */
   const desc=document.getElementById(`${id}-desc`);
-  if(desc&&mod.descs[idx]){desc.style.opacity='0';setTimeout(()=>{desc.textContent=mod.descs[idx];desc.style.opacity='1'},200)}
+  if(desc&&mod.descs[idx]){
+    if(window.gsap){
+      gsap.to(desc,{opacity:0,y:-6,duration:0.18,ease:'power2.in',onComplete:()=>{
+        desc.textContent=mod.descs[idx];
+        gsap.fromTo(desc,{opacity:0,y:8},{opacity:1,y:0,duration:0.32,ease:'power2.out'});
+      }});
+    } else {
+      desc.textContent=mod.descs[idx];
+    }
+  }
   slideState[id]=idx;
 }
 function jump(id,idx){clearInterval(slideTimers[id]);goSlide(id,idx);slideTimers[id]=setInterval(()=>goSlide(id,(slideState[id]+1)%MODS[id].n),3200)}
@@ -1753,63 +1762,306 @@ function lwStartBounce(){
         ease: 'sine.inOut', yoyo: true, repeat: -1,
       });
     });
+
+    /* Add gloss overlay for 3D glass effect */
+    if (!phone.querySelector('.phone-gloss')) {
+      var gloss = document.createElement('div');
+      gloss.className = 'phone-gloss';
+      phone.appendChild(gloss);
+    }
+  });
+
+  /* ── 3D mouse-tilt parallax for every phone (premium hover effect) ── */
+  document.querySelectorAll('.feat-row').forEach(function(row) {
+    var phone = row.querySelector('.phone');
+    if (!phone) return;
+    var bound = { cx: 0, cy: 0, w: 0, h: 0 };
+
+    row.addEventListener('mouseenter', function() {
+      var r = phone.getBoundingClientRect();
+      bound.cx = r.left + r.width / 2;
+      bound.cy = r.top  + r.height / 2;
+      bound.w  = r.width;
+      bound.h  = r.height;
+    });
+
+    row.addEventListener('mousemove', function(e) {
+      var dx = (e.clientX - bound.cx) / (bound.w  * 0.5);
+      var dy = (e.clientY - bound.cy) / (bound.h  * 0.5);
+      var rotY =  dx * 14;
+      var rotX = -dy * 10;
+      gsap.to(phone, {
+        rotateY: rotY, rotateX: rotX,
+        scale: 1.04,
+        duration: 0.55, ease: 'power2.out',
+        transformPerspective: 1000,
+        overwrite: 'auto',
+      });
+    });
+
+    row.addEventListener('mouseleave', function() {
+      gsap.to(phone, {
+        rotateY: 0, rotateX: 0, scale: 1,
+        duration: 0.8, ease: 'expo.out',
+        overwrite: 'auto',
+      });
+    });
   });
 })();
 
 /* ════════════════════════════════════════════════════════════
-   HERO SCENE — Bitcoin BG + crypto orbit + word rotation
+   HERO SCENE — Three.js 3D Bitcoin coin + orbital system
 ════════════════════════════════════════════════════════════ */
 (function initHeroScene() {
   var hero = document.querySelector('.hero');
-  if (!hero) return;
+  if (!hero || !window.THREE) return;
 
-  /* ── Inject Bitcoin background ── */
-  var btcScene = document.createElement('div');
-  btcScene.className = 'hero-btc-scene';
-  btcScene.setAttribute('aria-hidden', 'true');
-  btcScene.innerHTML = '<div class="btc-symbol">&#x20BF;</div>';
-  hero.insertBefore(btcScene, hero.firstChild);
+  /* ── Create WebGL canvas inside hero ── */
+  var canvas = document.createElement('canvas');
+  canvas.id = 'hero-3d-canvas';
+  canvas.setAttribute('aria-hidden', 'true');
+  hero.insertBefore(canvas, hero.firstChild);
 
-  /* ── Inject orbit system ── */
-  var orbitSys = document.createElement('div');
-  orbitSys.className = 'orbit-system';
-  orbitSys.setAttribute('aria-hidden', 'true');
-  orbitSys.innerHTML = '<div class="orbit-ring-css"></div><div class="orbit-ring-css-2"></div><div class="orbit-labels"></div>';
-  hero.insertBefore(orbitSys, hero.firstChild);
+  var W = hero.offsetWidth  || 800;
+  var H = hero.offsetHeight || 600;
 
-  var cryptos = [
-    { name: 'Bitcoin',      icon: '₿', color: '#f59e0b' },
-    { name: 'Ethereum',     icon: 'Ξ', color: '#818cf8' },
-    { name: 'Solana',       icon: '◎', color: '#22d3ee' },
-    { name: 'XRP',          icon: '✕', color: '#a78bfa' },
-    { name: 'Binance Coin', icon: '◆', color: '#fbbf24' },
+  var renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+  renderer.setSize(W, H);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  var scene  = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(42, W / H, 0.1, 100);
+  camera.position.set(0, 0, 9);
+  camera.lookAt(0, 0, 0);
+
+  /* ── Lighting: premium 3-point setup ── */
+  scene.add(new THREE.AmbientLight(0x0d0714, 0.8));
+
+  var keyLight = new THREE.PointLight(0xfbbf24, 6, 18);
+  keyLight.position.set(3, 4, 5);
+  keyLight.castShadow = true;
+  scene.add(keyLight);
+
+  var fillLight = new THREE.PointLight(0x22d3ee, 2.5, 14);
+  fillLight.position.set(-4, -2, 3);
+  scene.add(fillLight);
+
+  var rimLight = new THREE.PointLight(0xf97316, 1.8, 10);
+  rimLight.position.set(0, -4, -3);
+  scene.add(rimLight);
+
+  /* ── Bitcoin coin ── */
+  var coinGroup = new THREE.Group();
+  scene.add(coinGroup);
+
+  /* Coin body — cylinder seen edge-on, rotated to face camera */
+  var coinGeo = new THREE.CylinderGeometry(1.35, 1.35, 0.22, 72);
+  var coinMat = new THREE.MeshStandardMaterial({
+    color: 0xf59e0b, metalness: 0.96, roughness: 0.07,
+  });
+  var coinMesh = new THREE.Mesh(coinGeo, coinMat);
+  coinMesh.rotation.x = Math.PI / 2;
+  coinMesh.castShadow = true;
+  coinGroup.add(coinMesh);
+
+  /* Coin rim — thinner torus around edge */
+  var rimMesh = new THREE.Mesh(
+    new THREE.TorusGeometry(1.35, 0.055, 20, 72),
+    new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.99, roughness: 0.04 })
+  );
+  coinGroup.add(rimMesh);
+
+  /* ₿ symbol baked onto a canvas texture */
+  var symCv = document.createElement('canvas');
+  symCv.width = symCv.height = 512;
+  var sc = symCv.getContext('2d');
+  sc.clearRect(0, 0, 512, 512);
+  /* Subtle base gradient */
+  var bg = sc.createRadialGradient(256,256,60,256,256,256);
+  bg.addColorStop(0, 'rgba(253,230,138,0.18)');
+  bg.addColorStop(1, 'rgba(180,83,9,0)');
+  sc.fillStyle = bg; sc.fillRect(0,0,512,512);
+  /* Symbol */
+  sc.font = 'bold 300px Arial';
+  sc.textAlign = 'center'; sc.textBaseline = 'middle';
+  sc.fillStyle = '#fde68a'; sc.globalAlpha = 0.92;
+  sc.fillText('₿', 265, 278);
+  var symTex = new THREE.CanvasTexture(symCv);
+
+  /* Front face circle */
+  var faceMat = new THREE.MeshStandardMaterial({
+    map: symTex, color: 0xf59e0b, metalness: 0.82, roughness: 0.12, transparent: true,
+  });
+  var frontFace = new THREE.Mesh(new THREE.CircleGeometry(1.3, 72), faceMat);
+  frontFace.position.z = 0.12;
+  coinGroup.add(frontFace);
+
+  /* Back face */
+  var backFace = new THREE.Mesh(new THREE.CircleGeometry(1.3, 72), faceMat.clone());
+  backFace.position.z = -0.12;
+  backFace.rotation.y = Math.PI;
+  coinGroup.add(backFace);
+
+  /* Additive glow sprite behind coin */
+  var glowCv = document.createElement('canvas');
+  glowCv.width = glowCv.height = 256;
+  var gc2 = glowCv.getContext('2d');
+  var gr = gc2.createRadialGradient(128,128,0,128,128,128);
+  gr.addColorStop(0, 'rgba(251,191,36,0.7)');
+  gr.addColorStop(0.4,'rgba(245,158,11,0.3)');
+  gr.addColorStop(1, 'rgba(245,158,11,0)');
+  gc2.fillStyle = gr; gc2.fillRect(0,0,256,256);
+  var glowTex = new THREE.CanvasTexture(glowCv);
+  var glowPlane = new THREE.Mesh(
+    new THREE.PlaneGeometry(7, 7),
+    new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })
+  );
+  glowPlane.position.z = -0.3;
+  coinGroup.add(glowPlane);
+
+  /* ── Orbit ring 1 — gold, inner ── */
+  var orbitR1 = 3.0, orbitR2 = 4.2;
+  var ring1 = new THREE.Mesh(
+    new THREE.TorusGeometry(orbitR1, 0.011, 16, 130),
+    new THREE.MeshBasicMaterial({ color: 0xf59e0b, transparent: true, opacity: 0.40, blending: THREE.AdditiveBlending })
+  );
+  ring1.rotation.x = Math.PI / 2 + 0.38;
+  ring1.rotation.z = 0.28;
+  scene.add(ring1);
+
+  /* Orbit ring 2 — cyan, outer */
+  var ring2 = new THREE.Mesh(
+    new THREE.TorusGeometry(orbitR2, 0.008, 16, 160),
+    new THREE.MeshBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending })
+  );
+  ring2.rotation.x = Math.PI / 2 - 0.32;
+  ring2.rotation.z = -0.45;
+  scene.add(ring2);
+
+  /* ── Orbit dot beads ── */
+  var cryptoData = [
+    { name:'Bitcoin',      hex:'#f59e0b', c:0xf59e0b, ring:1, speed:0.0038, off:0 },
+    { name:'Ethereum',     hex:'#818cf8', c:0x818cf8, ring:1, speed:0.0038, off:Math.PI*0.72 },
+    { name:'Solana',       hex:'#22d3ee', c:0x22d3ee, ring:2, speed:0.0028, off:0 },
+    { name:'XRP',          hex:'#a78bfa', c:0xa78bfa, ring:2, speed:0.0028, off:Math.PI*0.65 },
+    { name:'Binance Coin', hex:'#fbbf24', c:0xfbbf24, ring:2, speed:0.0028, off:Math.PI*1.35 },
   ];
-  var labelsWrap = orbitSys.querySelector('.orbit-labels');
-  labelsWrap.style.cssText = 'position:absolute;inset:0;';
-  var labelEls = [];
-  cryptos.forEach(function(c) {
-    var el = document.createElement('div');
-    el.className = 'orbit-label';
-    el.innerHTML = '<span style="color:' + c.color + ';margin-right:5px">' + c.icon + '</span>' + c.name;
-    labelsWrap.appendChild(el);
-    labelEls.push(el);
+
+  var orbitDots = cryptoData.map(function(c) {
+    var dot = new THREE.Mesh(
+      new THREE.SphereGeometry(0.065, 12, 12),
+      new THREE.MeshBasicMaterial({ color: c.c, blending: THREE.AdditiveBlending })
+    );
+    scene.add(dot);
+    return { mesh: dot, data: c, angle: c.off };
   });
 
-  var orbitAngle = 0;
-  function animateOrbit() {
-    requestAnimationFrame(animateOrbit);
-    orbitAngle += 0.004;
-    var count = labelEls.length;
-    var R = Math.min(orbitSys.offsetWidth, orbitSys.offsetHeight) * 0.44;
-    labelEls.forEach(function(el, i) {
-      var a = orbitAngle + (i / count) * Math.PI * 2;
-      var x = Math.cos(a) * R;
-      var y = Math.sin(a) * R;
-      el.style.transform = 'translate(calc(-50% + ' + x.toFixed(1) + 'px), calc(-50% + ' + y.toFixed(1) + 'px))';
-    });
-  }
-  animateOrbit();
+  /* ── Billboard HTML labels ── */
+  var labelLayer = document.createElement('div');
+  labelLayer.className = 'hero-label-layer';
+  hero.appendChild(labelLayer);
 
+  var labelEls = cryptoData.map(function(c) {
+    var el = document.createElement('div');
+    el.className = 'orbit-pill';
+    el.style.borderColor = c.hex.replace(')', ',0.3)').replace('rgb','rgba');
+    el.style.border = '1px solid ' + c.hex + '44';
+    el.innerHTML = '<span style="color:' + c.hex + ';margin-right:5px;font-size:11px">●</span>' + c.name;
+    labelLayer.appendChild(el);
+    return el;
+  });
+
+  /* ── Mouse parallax state ── */
+  var mx = 0, my = 0, camTx = 0, camTy = 0;
+  hero.addEventListener('mousemove', function(e) {
+    var r = hero.getBoundingClientRect();
+    mx =  (e.clientX - r.left)  / r.width  - 0.5;
+    my =  (e.clientY - r.top)   / r.height - 0.5;
+  }, { passive: true });
+  hero.addEventListener('mouseleave', function() { mx = 0; my = 0; }, { passive: true });
+
+  /* ── Shared rotation Euler helpers ── */
+  var e1 = new THREE.Euler(), e2 = new THREE.Euler();
+  var m4 = new THREE.Matrix4();
+  var vp = new THREE.Vector3();
+
+  /* ── Render loop ── */
+  var clock = new THREE.Clock();
+  var orbitAngles = cryptoData.map(function(c) { return c.off; });
+  var active = true;
+
+  /* Pause when hero is off-screen */
+  if (window.IntersectionObserver) {
+    new IntersectionObserver(function(entries) {
+      active = entries[0].isIntersecting;
+    }, { threshold: 0.05 }).observe(hero);
+  }
+
+  function animate() {
+    requestAnimationFrame(animate);
+    if (!active) return;
+
+    var t = clock.getElapsedTime();
+
+    /* Coin: Y-axis spin + float */
+    coinGroup.rotation.z += 0.006;
+    coinGroup.position.y = Math.sin(t * 0.45) * 0.14;
+
+    /* Rings slowly precess */
+    ring1.rotation.y += 0.0025;
+    ring2.rotation.y -= 0.0018;
+
+    /* Position orbit dots in 3D using ring's current rotation matrix */
+    orbitDots.forEach(function(od, i) {
+      orbitAngles[i] += od.data.speed;
+      var a = orbitAngles[i];
+      var R = od.data.ring === 1 ? orbitR1 : orbitR2;
+      var ringRef = od.data.ring === 1 ? ring1 : ring2;
+
+      /* Local circle point → world space via ring's rotation */
+      m4.makeRotationFromEuler(ringRef.rotation);
+      vp.set(Math.cos(a) * R, Math.sin(a) * R, 0);
+      vp.applyMatrix4(m4);
+      od.mesh.position.copy(vp);
+
+      /* Billboard label: project 3D → NDC → CSS pixels */
+      var p = od.mesh.position.clone().project(camera);
+      var visible = p.z < 1.0 && p.z > -1.0;
+      if (visible) {
+        var sx = ( p.x * 0.5 + 0.5) * W;
+        var sy = (-p.y * 0.5 + 0.5) * H;
+        var depth = 1.0 - Math.max(0, Math.min(1, (p.z + 1) * 0.5));
+        labelEls[i].style.left    = sx + 'px';
+        labelEls[i].style.top     = sy + 'px';
+        labelEls[i].style.opacity = (0.4 + depth * 0.55).toFixed(2);
+      } else {
+        labelEls[i].style.opacity = '0';
+      }
+    });
+
+    /* Smooth camera parallax */
+    camTx += (mx * 1.8 - camTx) * 0.035;
+    camTy += (-my * 1.2 - camTy) * 0.035;
+    camera.position.x = camTx;
+    camera.position.y = camTy;
+    camera.lookAt(0, 0, 0);
+
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  /* ── Resize handler ── */
+  window.addEventListener('resize', function() {
+    W = hero.offsetWidth;
+    H = hero.offsetHeight;
+    renderer.setSize(W, H);
+    camera.aspect = W / H;
+    camera.updateProjectionMatrix();
+  });
+
+  /* ── Word rotation (GSAP) ── */
   if (!window.gsap) return;
   var words = ['elite', 'pro', 'smart', 'strategic', 'advanced'];
   var wordEl = document.getElementById('hero-rw');
@@ -1824,7 +2076,7 @@ function lwStartBounce(){
         wordEl.textContent = words[wIdx];
         gsap.fromTo(wordEl,
           { opacity: 0, y: 16, filter: 'blur(6px)' },
-          { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.55, ease: 'power2.out' }
+          { opacity: 1, y: 0,  filter: 'blur(0px)', duration: 0.55, ease: 'power2.out' }
         );
       }
     });
