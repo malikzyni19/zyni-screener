@@ -1221,13 +1221,13 @@ def hp_volume():
             print(traceback.format_exc())
             volumes.append({'exchange': 'Bybit', 'volume': 0, 'color': '#22d3ee'})
 
-        # OKX Swap
+        # OKX Swap — vol24h (base) * last (price) = USD volume per symbol
         try:
             r = req.get('https://www.okx.com/api/v5/market/tickers?instType=SWAP', headers=hdrs, timeout=8)
             r.raise_for_status()
             data = r.json()
             total = sum(
-                float(d.get('volCcy24h', 0))
+                float(d.get('vol24h', 0)) * float(d.get('last', 0))
                 for d in data.get('data', [])
                 if d.get('instId', '').endswith('USDT-SWAP')
             )
@@ -1251,12 +1251,12 @@ def hp_volume():
             print(traceback.format_exc())
             volumes.append({'exchange': 'MEXC', 'volume': 0, 'color': '#f97316'})
 
-        # Bitget v2
+        # Bitget Futures (umcbl = USDT margined perpetuals)
         try:
-            r = req.get('https://api.bitget.com/api/v2/spot/market/tickers', headers=hdrs, timeout=8)
+            r = req.get('https://api.bitget.com/api/mix/v1/market/tickers?productType=umcbl', headers=hdrs, timeout=8)
             r.raise_for_status()
             data = r.json()
-            total = sum(float(d.get('usdtVol', 0)) for d in data.get('data', []))
+            total = sum(float(d.get('usdtVolume', 0)) for d in data.get('data', []))
             volumes.append({'exchange': 'Bitget', 'volume': round(total / 1e9, 1), 'color': '#a78bfa'})
             print(f"[HP Volume] Bitget: {round(total/1e9,1)}B")
         except Exception as e:
