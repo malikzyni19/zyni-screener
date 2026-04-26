@@ -1312,12 +1312,16 @@ function buildTicker(){
 }
 
 // ── GAINERS/LOSERS ──
-document.getElementById('gainers').innerHTML=GAINERS.map(g=>`<div class="gl-row"><div><div class="gl-sym" style="color:#22c55e">${g.sym}</div><div class="gl-p">${g.price}</div><div class="gl-bw"><div class="gl-b" style="background:#22c55e;width:${g.bar}%"></div></div></div><div class="gl-chg up">${g.chg}</div></div>`).join('');
-document.getElementById('losers').innerHTML=LOSERS.map(g=>`<div class="gl-row"><div><div class="gl-sym" style="color:#ef4444">${g.sym}</div><div class="gl-p">${g.price}</div><div class="gl-bw"><div class="gl-b" style="background:#ef4444;width:${g.bar}%"></div></div></div><div class="gl-chg dn">${g.chg}</div></div>`).join('');
+function buildGL(){
+  document.getElementById('gainers').innerHTML=GAINERS.map(g=>`<div class="gl-row"><div><div class="gl-sym" style="color:#22c55e">${g.sym}</div><div class="gl-p">${g.price}</div><div class="gl-bw"><div class="gl-b" style="background:#22c55e;width:${g.bar}%"></div></div></div><div class="gl-chg up">${g.chg}</div></div>`).join('');
+  document.getElementById('losers').innerHTML=LOSERS.map(g=>`<div class="gl-row"><div><div class="gl-sym" style="color:#ef4444">${g.sym}</div><div class="gl-p">${g.price}</div><div class="gl-bw"><div class="gl-b" style="background:#ef4444;width:${g.bar}%"></div></div></div><div class="gl-chg dn">${g.chg}</div></div>`).join('');
+}
 
 // ── VOL MINI ──
-const mx=Math.max(...EXCHS.map(e=>e.v));
-document.getElementById('vol-mini').innerHTML=EXCHS.map(e=>{const h=Math.round(e.v/mx*48);const lbl=e.v>=10?'$'+e.v.toFixed(0)+'B':'$'+e.v.toFixed(1)+'B';return`<div class="vol-mini-col"><div style="font-size:7px;color:var(--text3);font-family:'DM Sans',sans-serif;margin-bottom:2px">${lbl}</div><div class="vol-mini-bar" style="height:${h}px;background:${e.c};opacity:0.6;border-radius:3px 3px 0 0"></div><div class="vol-mini-name">${e.n}</div></div>`}).join('');
+function buildVol(){
+  const mx=Math.max(...EXCHS.map(e=>e.v),1);
+  document.getElementById('vol-mini').innerHTML=EXCHS.map(e=>{const h=Math.round(e.v/mx*48);const lbl=e.v>=10?'$'+e.v.toFixed(0)+'B':'$'+e.v.toFixed(1)+'B';return`<div class="vol-mini-col"><div style="font-size:7px;color:var(--text3);font-family:'DM Sans',sans-serif;margin-bottom:2px">${lbl}</div><div class="vol-mini-bar" style="height:${h}px;background:${e.c};opacity:0.6;border-radius:3px 3px 0 0"></div><div class="vol-mini-name">${e.n}</div></div>`}).join('');
+}
 
 // ── GAUGE ──
 let fgV=72;
