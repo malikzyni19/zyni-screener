@@ -1138,25 +1138,42 @@ def hp_ticker():
 
 @app.route('/api/homepage/gainers')
 def hp_gainers():
-    """Top gainers and losers from Binance — cached 60 seconds"""
+    """Top gainers and losers — Futures primary, Spot fallback — cached 60s"""
     def fetch():
-        import urllib.request
-        url = 'https://api.binance.com/api/v3/ticker/24hr'
-        req = urllib.request.Request(url, headers={'User-Agent':'Mozilla/5.0'})
-        with urllib.request.urlopen(req, timeout=10) as r:
-            data = json.loads(r.read().decode())
-        # Filter USDT pairs only, exclude stables
         stables = {'USDC','BUSD','TUSD','USDP','DAI','FDUSD'}
+        data = None
+        # Primary: Binance Futures
+        try:
+            r = req.get('https://fapi.binance.com/fapi/v1/ticker/24hr',
+                        headers={'User-Agent': 'Mozilla/5.0'}, timeout=8)
+            r.raise_for_status()
+            data = r.json()
+            print(f"[HP Gainers] Futures OK — {len(data)} symbols")
+        except Exception as e:
+            print(f"[HP Gainers] Futures failed: {e}")
+            print(traceback.format_exc())
+        # Fallback: Binance Spot
+        if not data:
+            try:
+                r = req.get('https://api.binance.com/api/v3/ticker/24hr',
+                            headers={'User-Agent': 'Mozilla/5.0'}, timeout=8)
+                r.raise_for_status()
+                data = r.json()
+                print(f"[HP Gainers] Spot fallback OK — {len(data)} symbols")
+            except Exception as e:
+                print(f"[HP Gainers] Spot fallback failed: {e}")
+                print(traceback.format_exc())
+                return None
         pairs = [
             {
-                'symbol': d['symbol'].replace('USDT',''),
-                'price': float(d['lastPrice']),
+                'symbol': d['symbol'].replace('USDT', ''),
+                'price':  float(d['lastPrice']),
                 'change': float(d['priceChangePercent']),
                 'volume': float(d['quoteVolume'])
             }
             for d in data
             if d['symbol'].endswith('USDT')
-            and d['symbol'].replace('USDT','') not in stables
+            and d['symbol'].replace('USDT', '') not in stables
             and float(d['quoteVolume']) > 1_000_000
         ]
         gainers = sorted(pairs, key=lambda x: x['change'], reverse=True)[:5]
@@ -1164,65 +1181,88 @@ def hp_gainers():
         return {'gainers': gainers, 'losers': losers}
     result = _hp_cached('gainers', 60, fetch)
     if result is None:
-        return jsonify({'gainers':[], 'losers':[]}), 200
+        return jsonify({'gainers': [], 'losers': []}), 200
     return jsonify(result)
 
 @app.route('/api/homepage/volume')
 def hp_volume():
     """24H exchange volumes — cached 5 minutes"""
     def fetch():
-        import urllib.request
         volumes = []
+        hdrs = {'User-Agent': 'Mozilla/5.0'}
 
-        # Binance
+        # Binance Futures (most reliable — higher volume than spot)
         try:
-            url = 'https://api.binance.com/api/v3/ticker/24hr'
-            req = urllib.request.Request(url, headers={'User-Agent':'Mozilla/5.0'})
-            with urllib.request.urlopen(req, timeout=8) as r:
-                data = json.loads(r.read().decode())
+            r = req.get('https://fapi.binance.com/fapi/v1/ticker/24hr', headers=hdrs, timeout=8)
+            r.raise_for_status()
+            data = r.json()
             total = sum(float(d['quoteVolume']) for d in data if d['symbol'].endswith('USDT'))
-            volumes.append({'exchange':'Binance','volume':round(total/1e9,1),'color':'#f59e0b'})
-        except: volumes.append({'exchange':'Binance','volume':0,'color':'#f59e0b'})
+            volumes.append({'exchange': 'Binance', 'volume': round(total / 1e9, 1), 'color': '#f59e0b'})
+            print(f"[HP Volume] Binance Futures: {round(total/1e9,1)}B")
+        except Exception as e:
+            print(f"[HP Volume Error] Binance: {e}")
+            print(traceback.format_exc())
+            volumes.append({'exchange': 'Binance', 'volume': 0, 'color': '#f59e0b'})
 
-        # Bybit
+        # Bybit Linear (perpetual)
         try:
-            url = 'https://api.bybit.com/v5/market/tickers?category=spot'
-            req = urllib.request.Request(url, headers={'User-Agent':'Mozilla/5.0'})
-            with urllib.request.urlopen(req, timeout=8) as r:
-                data = json.loads(r.read().decode())
-            total = sum(float(d.get('turnover24h',0)) for d in data.get('result',{}).get('list',[]) if d.get('symbol','').endswith('USDT'))
-            volumes.append({'exchange':'Bybit','volume':round(total/1e9,1),'color':'#22d3ee'})
-        except: volumes.append({'exchange':'Bybit','volume':0,'color':'#22d3ee'})
+            r = req.get('https://api.bybit.com/v5/market/tickers?category=linear', headers=hdrs, timeout=8)
+            r.raise_for_status()
+            data = r.json()
+            total = sum(
+                float(d.get('turnover24h', 0))
+                for d in data.get('result', {}).get('list', [])
+                if d.get('symbol', '').endswith('USDT')
+            )
+            volumes.append({'exchange': 'Bybit', 'volume': round(total / 1e9, 1), 'color': '#22d3ee'})
+            print(f"[HP Volume] Bybit Linear: {round(total/1e9,1)}B")
+        except Exception as e:
+            print(f"[HP Volume Error] Bybit: {e}")
+            print(traceback.format_exc())
+            volumes.append({'exchange': 'Bybit', 'volume': 0, 'color': '#22d3ee'})
 
-        # OKX
+        # OKX Swap
         try:
-            url = 'https://www.okx.com/api/v5/market/tickers?instType=SPOT'
-            req = urllib.request.Request(url, headers={'User-Agent':'Mozilla/5.0'})
-            with urllib.request.urlopen(req, timeout=8) as r:
-                data = json.loads(r.read().decode())
-            total = sum(float(d.get('volCcy24h',0)) for d in data.get('data',[]) if d.get('instId','').endswith('USDT'))
-            volumes.append({'exchange':'OKX','volume':round(total/1e9,1),'color':'#22c55e'})
-        except: volumes.append({'exchange':'OKX','volume':0,'color':'#22c55e'})
+            r = req.get('https://www.okx.com/api/v5/market/tickers?instType=SWAP', headers=hdrs, timeout=8)
+            r.raise_for_status()
+            data = r.json()
+            total = sum(
+                float(d.get('volCcy24h', 0))
+                for d in data.get('data', [])
+                if d.get('instId', '').endswith('USDT-SWAP')
+            )
+            volumes.append({'exchange': 'OKX', 'volume': round(total / 1e9, 1), 'color': '#22c55e'})
+            print(f"[HP Volume] OKX Swap: {round(total/1e9,1)}B")
+        except Exception as e:
+            print(f"[HP Volume Error] OKX: {e}")
+            print(traceback.format_exc())
+            volumes.append({'exchange': 'OKX', 'volume': 0, 'color': '#22c55e'})
 
         # MEXC
         try:
-            url = 'https://api.mexc.com/api/v3/ticker/24hr'
-            req = urllib.request.Request(url, headers={'User-Agent':'Mozilla/5.0'})
-            with urllib.request.urlopen(req, timeout=8) as r:
-                data = json.loads(r.read().decode())
-            total = sum(float(d.get('quoteVolume',0)) for d in data if d.get('symbol','').endswith('USDT'))
-            volumes.append({'exchange':'MEXC','volume':round(total/1e9,1),'color':'#f97316'})
-        except: volumes.append({'exchange':'MEXC','volume':0,'color':'#f97316'})
+            r = req.get('https://api.mexc.com/api/v3/ticker/24hr', headers=hdrs, timeout=8)
+            r.raise_for_status()
+            data = r.json()
+            total = sum(float(d.get('quoteVolume', 0)) for d in data if d.get('symbol', '').endswith('USDT'))
+            volumes.append({'exchange': 'MEXC', 'volume': round(total / 1e9, 1), 'color': '#f97316'})
+            print(f"[HP Volume] MEXC: {round(total/1e9,1)}B")
+        except Exception as e:
+            print(f"[HP Volume Error] MEXC: {e}")
+            print(traceback.format_exc())
+            volumes.append({'exchange': 'MEXC', 'volume': 0, 'color': '#f97316'})
 
-        # Bitget (public endpoint)
+        # Bitget v2
         try:
-            url = 'https://api.bitget.com/api/spot/v1/market/tickers'
-            req = urllib.request.Request(url, headers={'User-Agent':'Mozilla/5.0'})
-            with urllib.request.urlopen(req, timeout=8) as r:
-                data = json.loads(r.read().decode())
-            total = sum(float(d.get('usdtVol',0)) for d in data.get('data',[]))
-            volumes.append({'exchange':'Bitget','volume':round(total/1e9,1),'color':'#a78bfa'})
-        except: volumes.append({'exchange':'Bitget','volume':0,'color':'#a78bfa'})
+            r = req.get('https://api.bitget.com/api/v2/spot/market/tickers', headers=hdrs, timeout=8)
+            r.raise_for_status()
+            data = r.json()
+            total = sum(float(d.get('usdtVol', 0)) for d in data.get('data', []))
+            volumes.append({'exchange': 'Bitget', 'volume': round(total / 1e9, 1), 'color': '#a78bfa'})
+            print(f"[HP Volume] Bitget: {round(total/1e9,1)}B")
+        except Exception as e:
+            print(f"[HP Volume Error] Bitget: {e}")
+            print(traceback.format_exc())
+            volumes.append({'exchange': 'Bitget', 'volume': 0, 'color': '#a78bfa'})
 
         return volumes
 
