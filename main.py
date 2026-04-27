@@ -24,6 +24,8 @@ from flask import Flask, jsonify, redirect, render_template, request, session, u
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "zyni-fallback-secret")
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', '')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 @app.after_request
 def no_cache(r):
@@ -31,6 +33,27 @@ def no_cache(r):
     r.headers["Pragma"] = "no-cache"
     r.headers["Expires"] = "0"
     return r
+
+from flask_login import LoginManager
+from models import db, User as _DBUser
+from admin import admin_bp
+
+db.init_app(app)
+_login_manager = LoginManager()
+_login_manager.init_app(app)
+_login_manager.login_view = "admin.login"
+
+@_login_manager.user_loader
+def _load_user(user_id):
+    return _DBUser.query.get(int(user_id))
+
+app.register_blueprint(admin_bp)
+
+try:
+    with app.app_context():
+        db.create_all()
+except Exception as _db_err:
+    print(f"[DB] Could not create tables: {_db_err}")
 
 APP_PASSWORD = os.environ.get("APP_PASSWORD", "Ulta8900")
 
@@ -4362,51 +4385,6 @@ def logout():
     session.clear()
     return redirect(url_for("index"))
 
-
-# ═══════════════════════════════════════════════════════════════
-# ADMIN PANEL
-# ═══════════════════════════════════════════════════════════════
-
-@app.route("/admin/login", methods=["GET", "POST"])
-def admin_login():
-    if request.method == "GET":
-        return redirect(url_for("index"))
-
-    username = request.form.get("username", "").strip()
-    pwd      = request.form.get("password", "")
-    ip       = request.headers.get("X-Forwarded-For", request.remote_addr or "unknown").split(",")[0].strip()
-    ua       = request.headers.get("User-Agent", "unknown")
-    now_utc  = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
-
-    if username.lower() == ADMIN_USERNAME.lower() and pwd == ADMIN_PASSWORD:
-        session["logged_in"] = True
-        session["username"]  = username.lower()
-        session["is_admin"]  = True
-        sid = os.urandom(16).hex()
-        session["sid"] = sid
-        with _sessions_lock:
-            _active_sessions[username.lower()] = {
-                "ip": ip, "ua": ua,
-                "login_time": datetime.now(timezone.utc).isoformat(),
-                "sid": sid, "is_admin": True
-            }
-        LOGIN_AUDIT_LOG.appendleft({
-            "username": f"{username} (ADMIN)", "time": now_utc,
-            "ip": ip, "geo": "", "ua": ua, "success": True
-        })
-        return redirect(url_for("admin_panel"))
-
-    LOGIN_AUDIT_LOG.appendleft({
-        "username": f"{username or '(empty)'} (ADMIN attempt)", "time": now_utc,
-        "ip": ip, "geo": "", "ua": ua, "success": False
-    })
-    return render_template("login.html", error="Invalid admin credentials.")
-
-
-@app.route("/admin")
-@admin_required
-def admin_panel():
-    return render_template("admin.html", admin_username=session.get("username", "admin"))
 
 
 @app.route("/api/admin/users")

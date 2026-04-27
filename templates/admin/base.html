@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>{% block title %}ZyNi Admin{% endblock %}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#020810;--bg2:#060f1e;--bg3:#0a1628;--border:#1a2e40;--cyan:#22d3ee;--green:#22c55e;--amber:#f59e0b;--red:#f87171;--blue:#3b82f6;--text:#e2e8f0;--muted:#64748b;--muted2:#334d66}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+
+/* ── Sidebar ── */
+.adm-wrap{display:flex;flex:1;min-height:0}
+.adm-sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;position:fixed;top:0;bottom:0;left:0;z-index:50;transition:transform .3s}
+.adm-sidebar-logo{padding:20px 20px 16px;border-bottom:1px solid var(--border)}
+.adm-sidebar-logo-text{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:var(--cyan);letter-spacing:2px}
+.adm-sidebar-logo-badge{font-size:8px;letter-spacing:2px;color:var(--amber);background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.25);padding:2px 6px;border-radius:4px;font-weight:700;display:inline-block;margin-top:4px}
+.adm-nav{flex:1;padding:12px 0;overflow-y:auto}
+.adm-nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;font-size:12px;color:var(--muted);letter-spacing:.5px;transition:all .15s;border-left:2px solid transparent;font-weight:500;text-decoration:none}
+.adm-nav-item:hover{color:var(--text);background:rgba(255,255,255,.03)}
+.adm-nav-item.active{color:var(--cyan);border-left-color:var(--cyan);background:rgba(34,211,238,.05)}
+.adm-nav-sep{height:1px;background:var(--border);margin:8px 16px}
+.adm-nav-icon{width:18px;text-align:center;font-size:14px;flex-shrink:0}
+
+/* ── Top bar ── */
+.adm-topbar{position:fixed;top:0;left:220px;right:0;height:54px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;z-index:40}
+.adm-topbar-title{font-size:13px;color:var(--muted);letter-spacing:.5px}
+.adm-topbar-right{display:flex;align-items:center;gap:12px}
+.adm-topbar-user{font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace}
+.adm-topbar-user span{color:var(--cyan)}
+.adm-topbar-logout{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.25);color:var(--red);padding:5px 12px;border-radius:7px;font-size:11px;letter-spacing:.5px;font-weight:600;transition:all .2s;text-decoration:none}
+.adm-topbar-logout:hover{background:rgba(248,113,113,.2)}
+
+/* ── Main content ── */
+.adm-main{flex:1;margin-left:220px;margin-top:54px;padding:28px;overflow-y:auto;min-width:0}
+
+/* ── Stat cards ── */
+.adm-stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;margin-bottom:28px}
+.adm-stat-card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:18px 16px;position:relative;overflow:hidden}
+.adm-stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:12px 12px 0 0}
+.adm-stat-card.blue::before{background:linear-gradient(90deg,transparent,var(--blue),transparent)}
+.adm-stat-card.green::before{background:linear-gradient(90deg,transparent,var(--green),transparent)}
+.adm-stat-card.amber::before{background:linear-gradient(90deg,transparent,var(--amber),transparent)}
+.adm-stat-card.cyan::before{background:linear-gradient(90deg,transparent,var(--cyan),transparent)}
+.adm-stat-label{font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;font-weight:600}
+.adm-stat-value{font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:700}
+.adm-stat-value.blue{color:var(--blue)}
+.adm-stat-value.green{color:var(--green)}
+.adm-stat-value.amber{color:var(--amber)}
+.adm-stat-value.cyan{color:var(--cyan)}
+
+/* ── Cards ── */
+.adm-card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden}
+.adm-card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.adm-card-title{font-size:11px;letter-spacing:2px;color:var(--muted2);text-transform:uppercase;font-weight:600}
+.adm-card-body{padding:18px}
+
+/* ── Tables ── */
+.adm-table-wrap{overflow-x:auto}
+.adm-table{width:100%;border-collapse:collapse}
+.adm-table th{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted2);padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);font-weight:600;white-space:nowrap}
+.adm-table td{padding:11px 14px;font-size:12px;border-bottom:1px solid rgba(26,46,64,.4);vertical-align:middle}
+.adm-table tr:last-child td{border-bottom:none}
+.adm-table tr:hover td{background:rgba(255,255,255,.015)}
+.adm-empty{padding:28px;text-align:center;color:var(--muted);font-size:12px}
+
+/* ── Badges ── */
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.5px}
+.badge.green{background:rgba(34,197,94,.12);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.badge.red{background:rgba(248,113,113,.12);color:var(--red);border:1px solid rgba(248,113,113,.2)}
+.badge.amber{background:rgba(245,158,11,.12);color:var(--amber);border:1px solid rgba(245,158,11,.2)}
+.badge.blue{background:rgba(59,130,246,.12);color:var(--blue);border:1px solid rgba(59,130,246,.2)}
+.badge.cyan{background:rgba(34,211,238,.1);color:var(--cyan);border:1px solid rgba(34,211,238,.2)}
+
+/* ── Mobile ── */
+.adm-mob-toggle{display:none;position:fixed;top:12px;left:14px;z-index:100;background:var(--bg3);border:1px solid var(--border);color:var(--cyan);width:32px;height:32px;border-radius:7px;font-size:16px;cursor:pointer;align-items:center;justify-content:center}
+@media(max-width:768px){
+  .adm-sidebar{transform:translateX(-220px)}
+  .adm-sidebar.open{transform:translateX(0)}
+  .adm-topbar{left:0;padding:0 14px 0 52px}
+  .adm-main{margin-left:0;padding:14px}
+  .adm-mob-toggle{display:flex}
+  .adm-stats-grid{grid-template-columns:repeat(2,1fr);gap:10px}
+}
+</style>
+</head>
+<body>
+
+<button class="adm-mob-toggle" id="mobToggle" onclick="toggleSidebar()">☰</button>
+
+<div class="adm-wrap">
+  <!-- Sidebar -->
+  <nav class="adm-sidebar" id="sidebar">
+    <div class="adm-sidebar-logo">
+      <div class="adm-sidebar-logo-text">ZyNi SMC</div>
+      <div class="adm-sidebar-logo-badge">ADMIN PANEL</div>
+    </div>
+    <div class="adm-nav">
+      <a href="{{ url_for('admin.dashboard') }}" class="adm-nav-item {% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
+        <span class="adm-nav-icon">▣</span>Dashboard
+      </a>
+      <a href="#" class="adm-nav-item">
+        <span class="adm-nav-icon">👥</span>Users
+      </a>
+      <a href="#" class="adm-nav-item">
+        <span class="adm-nav-icon">⚙</span>Settings
+      </a>
+      <div class="adm-nav-sep"></div>
+      <a href="#" class="adm-nav-item">
+        <span class="adm-nav-icon">📋</span>Logs
+      </a>
+      <div class="adm-nav-sep"></div>
+      <a href="/" class="adm-nav-item">
+        <span class="adm-nav-icon">←</span>Back to Screener
+      </a>
+    </div>
+  </nav>
+
+  <!-- Top bar -->
+  <header class="adm-topbar">
+    <div class="adm-topbar-title">{% block page_title %}Dashboard{% endblock %}</div>
+    <div class="adm-topbar-right">
+      <div class="adm-topbar-user">Logged in as <span>{{ current_user.username }}</span></div>
+      <a href="{{ url_for('admin.logout') }}" class="adm-topbar-logout">Logout</a>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="adm-main">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+        <div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--green);padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:16px">{{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+
+<script>
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+}
+document.addEventListener('click',function(e){
+  var sb=document.getElementById('sidebar');
+  var tog=document.getElementById('mobToggle');
+  if(sb.classList.contains('open')&&!sb.contains(e.target)&&!tog.contains(e.target)){
+    sb.classList.remove('open');
+  }
+});
+</script>
+</body>
+</html>

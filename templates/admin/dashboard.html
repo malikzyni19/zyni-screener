@@ -1,0 +1,101 @@
+{% extends "admin/base.html" %}
+{% block title %}Dashboard — ZyNi Admin{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+
+<!-- Stat cards -->
+<div class="adm-stats-grid">
+  <div class="adm-stat-card blue">
+    <div class="adm-stat-label">Total Users</div>
+    <div class="adm-stat-value blue">{{ total_users }}</div>
+  </div>
+  <div class="adm-stat-card green">
+    <div class="adm-stat-label">Active Users</div>
+    <div class="adm-stat-value green">{{ active_users }}</div>
+  </div>
+  <div class="adm-stat-card amber">
+    <div class="adm-stat-label">Paused Users</div>
+    <div class="adm-stat-value amber">{{ paused_users }}</div>
+  </div>
+  <div class="adm-stat-card cyan">
+    <div class="adm-stat-label">Logs Today</div>
+    <div class="adm-stat-value cyan">{{ logs_today }}</div>
+  </div>
+</div>
+
+<!-- Recent activity -->
+<div class="adm-card">
+  <div class="adm-card-header">
+    <div class="adm-card-title">Recent Admin Activity</div>
+  </div>
+  <div class="adm-table-wrap">
+    <table class="adm-table">
+      <thead>
+        <tr>
+          <th>Time (UTC)</th>
+          <th>Admin</th>
+          <th>Action</th>
+          <th>Details</th>
+          <th>IP</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if recent_logs %}
+          {% for log in recent_logs %}
+          <tr>
+            <td style="color:var(--muted);font-size:11px;white-space:nowrap">
+              {{ log.created_at.strftime('%Y-%m-%d %H:%M') if log.created_at else '—' }}
+            </td>
+            <td style="font-family:'JetBrains Mono',monospace;color:var(--cyan)">
+              {{ log.admin.username if log.admin else '—' }}
+            </td>
+            <td>
+              <span class="badge cyan">{{ log.action }}</span>
+            </td>
+            <td style="color:var(--muted);font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+              {{ log.details or '—' }}
+            </td>
+            <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">
+              {{ log.ip_address or '—' }}
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr><td colspan="5" class="adm-empty">No activity logged yet.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- System status -->
+<div class="adm-card">
+  <div class="adm-card-header">
+    <div class="adm-card-title">System Status</div>
+  </div>
+  <div class="adm-card-body">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px">
+      <div style="background:#04090f;border:1px solid var(--border);border-radius:8px;padding:14px">
+        <div style="font-size:10px;color:var(--muted2);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Database</div>
+        <div style="font-size:13px;font-family:'JetBrains Mono',monospace">
+          {% if db_connected %}
+            <span style="color:var(--green)">● Connected</span>
+          {% else %}
+            <span style="color:var(--red)">● Disconnected</span>
+          {% endif %}
+        </div>
+      </div>
+      <div style="background:#04090f;border:1px solid var(--border);border-radius:8px;padding:14px">
+        <div style="font-size:10px;color:var(--muted2);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">App Version</div>
+        <div style="font-size:13px;font-family:'JetBrains Mono',monospace;color:var(--cyan)">v{{ app_version }}</div>
+      </div>
+      <div style="background:#04090f;border:1px solid var(--border);border-radius:8px;padding:14px">
+        <div style="font-size:10px;color:var(--muted2);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Server Time</div>
+        <div style="font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--text)">{{ server_time }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
