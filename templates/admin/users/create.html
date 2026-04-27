@@ -1,0 +1,144 @@
+{% extends "admin/base.html" %}
+{% block title %}Create User — ZyNi Admin{% endblock %}
+{% block page_title %}Create User{% endblock %}
+
+{% block content %}
+<div style="max-width:540px">
+
+  <!-- Breadcrumb -->
+  <div style="margin-bottom:20px;font-size:11px;color:var(--muted)">
+    <a href="{{ url_for('admin.users') }}" style="color:var(--cyan);text-decoration:none">Users</a>
+    <span style="margin:0 8px">›</span>
+    <span>Create New User</span>
+  </div>
+
+  <div class="adm-card">
+    <div class="adm-card-header">
+      <div class="adm-card-title">New User Details</div>
+    </div>
+    <div class="adm-card-body">
+
+      {% if errors._general %}
+      <div class="adm-form-error-box">{{ errors._general }}</div>
+      {% endif %}
+
+      <form method="POST" id="createForm">
+
+        <!-- Username -->
+        <div class="adm-field {% if errors.username %}has-error{% endif %}">
+          <label>Username <span style="color:var(--red)">*</span></label>
+          <input type="text" name="username" value="{{ form.get('username','') }}"
+                 placeholder="e.g. john_doe" maxlength="30" autocomplete="off"/>
+          {% if errors.username %}<div class="adm-field-error">{{ errors.username }}</div>{% endif %}
+          <div class="adm-field-hint">3–30 chars · letters, numbers, underscore</div>
+        </div>
+
+        <!-- Password -->
+        <div class="adm-field {% if errors.password %}has-error{% endif %}">
+          <label>Password <span style="color:var(--red)">*</span></label>
+          <div style="position:relative">
+            <input type="password" name="password" id="passwordField"
+                   placeholder="Min. 8 characters" autocomplete="new-password"
+                   oninput="updateStrength(this.value)"/>
+            <button type="button" onclick="toggleVis('passwordField',this)"
+                    style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px">👁</button>
+          </div>
+          {% if errors.password %}<div class="adm-field-error">{{ errors.password }}</div>{% endif %}
+          <div id="strengthBar" style="margin-top:7px;height:3px;border-radius:2px;background:var(--border);overflow:hidden">
+            <div id="strengthFill" style="height:100%;width:0;transition:width .3s,background .3s"></div>
+          </div>
+          <div id="strengthLabel" style="font-size:10px;color:var(--muted);margin-top:4px"></div>
+        </div>
+
+        <!-- Confirm Password -->
+        <div class="adm-field {% if errors.confirm_password %}has-error{% endif %}">
+          <label>Confirm Password <span style="color:var(--red)">*</span></label>
+          <div style="position:relative">
+            <input type="password" name="confirm_password" id="confirmField"
+                   placeholder="Repeat password" autocomplete="new-password"/>
+            <button type="button" onclick="toggleVis('confirmField',this)"
+                    style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px">👁</button>
+          </div>
+          {% if errors.confirm_password %}<div class="adm-field-error">{{ errors.confirm_password }}</div>{% endif %}
+        </div>
+
+        <!-- Role + Status side by side -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div class="adm-field">
+            <label>Role</label>
+            <select name="role">
+              <option value="user" {% if form.get('role','user')=='user' %}selected{% endif %}>user</option>
+              <option value="admin" {% if form.get('role')=='admin' %}selected{% endif %}>admin</option>
+              <option value="guest" {% if form.get('role')=='guest' %}selected{% endif %}>guest</option>
+            </select>
+          </div>
+          <div class="adm-field">
+            <label>Status</label>
+            <select name="status">
+              <option value="active" {% if form.get('status','active')=='active' %}selected{% endif %}>active</option>
+              <option value="paused" {% if form.get('status')=='paused' %}selected{% endif %}>paused</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="adm-field">
+          <label>Notes <span style="color:var(--muted)">(optional)</span></label>
+          <textarea name="notes" rows="3" placeholder="Internal admin notes about this user…">{{ form.get('notes','') }}</textarea>
+        </div>
+
+        <!-- Buttons -->
+        <div style="display:flex;gap:10px;margin-top:8px">
+          <a href="{{ url_for('admin.users') }}"
+             style="flex:1;text-align:center;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--muted);padding:12px;border-radius:9px;text-decoration:none;font-size:12px;font-weight:600;transition:all .2s"
+             onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">Cancel</a>
+          <button type="submit"
+                  style="flex:2;background:linear-gradient(135deg,#0891b2,#06b6d4);border:none;color:#fff;padding:12px;border-radius:9px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;letter-spacing:.5px;box-shadow:0 0 18px rgba(8,145,178,.35);transition:all .2s"
+                  onmouseover="this.style.boxShadow='0 0 30px rgba(8,145,178,.55)'" onmouseout="this.style.boxShadow='0 0 18px rgba(8,145,178,.35)'">
+            Create User →
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+.adm-field{margin-bottom:16px}
+.adm-field label{display:block;font-size:10px;color:var(--muted2);letter-spacing:1px;text-transform:uppercase;margin-bottom:7px;font-weight:600}
+.adm-field input,.adm-field select,.adm-field textarea{width:100%;background:#04090f;color:var(--text);border:1px solid var(--border);border-radius:9px;padding:11px 14px;font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;transition:border-color .2s,box-shadow .2s;resize:vertical}
+.adm-field input:focus,.adm-field select:focus,.adm-field textarea:focus{border-color:rgba(34,211,238,.4);box-shadow:0 0 0 3px rgba(34,211,238,.06)}
+.adm-field select option{background:#060f1e;color:var(--text)}
+.adm-field.has-error input,.adm-field.has-error select,.adm-field.has-error textarea{border-color:rgba(248,113,113,.5)}
+.adm-field-error{font-size:11px;color:var(--red);margin-top:5px}
+.adm-field-hint{font-size:10px;color:var(--muted2);margin-top:5px}
+.adm-form-error-box{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.25);color:var(--red);border-radius:8px;padding:10px 14px;font-size:12px;margin-bottom:16px}
+</style>
+
+<script>
+function updateStrength(v) {
+  var score = 0;
+  if (v.length >= 8) score++;
+  if (v.length >= 12) score++;
+  if (/[A-Z]/.test(v)) score++;
+  if (/[0-9]/.test(v)) score++;
+  if (/[^A-Za-z0-9]/.test(v)) score++;
+  var fill = document.getElementById('strengthFill');
+  var label = document.getElementById('strengthLabel');
+  var pcts = ['0%','20%','40%','65%','85%','100%'];
+  var colors = ['','#ef4444','#f59e0b','#f59e0b','#22c55e','#22c55e'];
+  var labels = ['','Weak','Fair','Fair','Strong','Very strong'];
+  fill.style.width = pcts[score];
+  fill.style.background = colors[score];
+  label.textContent = v ? labels[score] : '';
+  label.style.color = colors[score];
+}
+function toggleVis(id, btn) {
+  var inp = document.getElementById(id);
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.style.opacity = inp.type === 'text' ? '1' : '0.5';
+}
+</script>
+
+{% endblock %}

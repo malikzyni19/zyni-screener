@@ -49,6 +49,19 @@ def _load_user(user_id):
 
 app.register_blueprint(admin_bp)
 
+@app.template_filter("time_ago")
+def _time_ago(dt):
+    if not dt:
+        return "—"
+    try:
+        diff = int((datetime.now(timezone.utc) - dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else datetime.now(timezone.utc) - dt).total_seconds())
+        if diff < 60: return "just now"
+        if diff < 3600: return f"{diff//60}m ago"
+        if diff < 86400: return f"{diff//3600}h ago"
+        return f"{diff//86400}d ago"
+    except Exception:
+        return "—"
+
 try:
     with app.app_context():
         db.create_all()
@@ -4305,15 +4318,53 @@ def login():
     now_utc  = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     error    = None
 
+    # ── Try DB login first ──────────────────────────────────────────
+    db_user = None
+    db_error = None
     if not username:
-        error = "Please enter your username."
-    elif username not in _USERS_DB:
-        error = "Username not recognised."
-    elif pwd != _USERS_DB[username]:
-        error = "Incorrect password. Try again."
+        db_error = "Please enter your username."
     else:
+        try:
+            db_user = _DBUser.query.filter_by(username=username).first()
+            if db_user:
+                if not db_user.check_password(pwd):
+                    db_error = "Incorrect password. Try again."
+                elif db_user.status == "paused":
+                    db_error = "Your account has been paused. Contact admin."
+                elif db_user.status != "active":
+                    db_error = f"Account is {db_user.status}. Contact admin."
+                # success — db_error stays None
+            # else: user not in DB, fall through to legacy
+        except Exception as _dbe:
+            print(f"[LOGIN-DB] Error: {_dbe}")
+            db_user = None  # DB unavailable — fall to legacy
+
+    # ── Legacy fallback if DB user not found ──────────────────────
+    if not username:
+        error = db_error
+    elif db_user is not None:
+        # DB user found — honour DB result
+        error = db_error
+    else:
+        # Not in DB — try in-memory legacy list
+        if username not in _USERS_DB:
+            error = "Username not recognised."
+        elif pwd != _USERS_DB[username]:
+            error = "Incorrect password. Try again."
+        # else: legacy success, error stays None
+
+    if error is None and username:
         session["logged_in"] = True
         session["username"]  = username
+        # persist DB fields if user found
+        if db_user is not None:
+            try:
+                db_user.last_login_at = datetime.now(timezone.utc)
+                db_user.last_login_ip = ip
+                from models import db as _db
+                _db.session.commit()
+            except Exception:
+                pass
         sid = os.urandom(16).hex()
         session["sid"] = sid
 
