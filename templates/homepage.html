@@ -542,10 +542,6 @@ footer{position:relative;z-index:1;border-top:1px solid var(--border);background
 /* ── LETTER TYPING SPANS ── */
 .letter-span{display:inline-block;opacity:0;will-change:opacity}
 
-#features{position:relative}
-#ai-brain-wrap{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;overflow:hidden}
-#features>*:not(#ai-brain-wrap){position:relative;z-index:1}
-@media(max-width:640px){#ai-brain-wrap{opacity:.42}}
 
 /* ── STATEMENT SECTION ── */
 #statement{padding:72px 20px 80px;text-align:center;position:relative;overflow:hidden;min-height:360px}
@@ -814,7 +810,6 @@ footer{position:relative;z-index:1;border-top:1px solid var(--border);background
 
 <!-- FEATURES -->
 <div class="section" id="features">
-  <div id="ai-brain-wrap" aria-hidden="true"></div>
   <div class="sec-eyebrow" data-i18n="feat_eyebrow">SMC Modules</div>
   <h2 class="sec-h"><span data-i18n="feat_h">Everything to trade smart money</span></h2>
   <p class="sec-sub" data-i18n="feat_sub">Six professional tools — scan, detect and act on every Smart Money setup across 400+ pairs.</p>
@@ -2269,10 +2264,11 @@ function lwStartBounce(){
 })();
 
 /* ════════════════════════════════════════════════════════════
-   MODULES — Subtle AI Brain  (single small wireframe, background accent)
+   STATEMENT — ASIMO-style 3D Robot  (Three.js + GSAP)
+   Walks in from right · stops · raises arm · points at text
 ════════════════════════════════════════════════════════════ */
-(function initAIBrain() {
-  var wrap = document.getElementById('ai-brain-wrap');
+(function initRobot() {
+  var wrap = document.getElementById('robot-canvas-wrap');
   if (!wrap || !window.THREE) return;
 
   var canvas = document.createElement('canvas');
@@ -2280,85 +2276,230 @@ function lwStartBounce(){
   canvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%';
   wrap.appendChild(canvas);
 
-  var W = wrap.offsetWidth || 900;
-  var H = wrap.offsetHeight || 460;
+  var W = wrap.offsetWidth  || 900;
+  var H = Math.max(wrap.offsetHeight || 340, 280);
 
   var renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
   renderer.setSize(W, H);
 
-  var scene  = new THREE.Scene();
-  /* Tight FOV + far camera = small brain in frame */
-  var camera = new THREE.PerspectiveCamera(26, W / H, 0.1, 80);
-  camera.position.set(0.6, 0.5, 10);
-  camera.lookAt(0.6, 0.5, 0);
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(42, W / H, 0.1, 80);
+  camera.position.set(0, 1.2, 8);
+  camera.lookAt(0, 0.5, 0);
 
-  /* Minimal warm lighting */
-  scene.add(new THREE.AmbientLight(0x020810, 0.8));
-  var glow = new THREE.PointLight(0xf59e0b, 2.4, 14);
-  glow.position.set(2, 3, 4);
-  scene.add(glow);
-  var fill = new THREE.PointLight(0x22d3ee, 0.6, 10);
-  fill.position.set(-2, -1, 2);
-  scene.add(fill);
+  /* ── Lighting ── */
+  scene.add(new THREE.AmbientLight(0x0e1e34, 1.6));
+  var keyL = new THREE.PointLight(0xcce8ff, 5.5, 22);
+  keyL.position.set(-1, 5, 7); scene.add(keyL);
+  var fillL = new THREE.PointLight(0x4488cc, 2.0, 16);
+  fillL.position.set(5, 2, 4); scene.add(fillL);
+  var rimL = new THREE.PointLight(0x22d3ee, 1.2, 12);
+  rimL.position.set(-3, -1, -4); scene.add(rimL);
+  var goldL = new THREE.PointLight(0xf59e0b, 1.4, 10);
+  goldL.position.set(4, 3, 3); scene.add(goldL);
 
-  /* Brain — small displaced icosahedron wireframe */
-  var brainGrp = new THREE.Group();
-  brainGrp.position.set(0.6, 0.5, 0);
-  scene.add(brainGrp);
+  /* ── Materials ── */
+  function wh()  { return new THREE.MeshStandardMaterial({ color: 0xedf1f8, metalness: 0.14, roughness: 0.28 }); }
+  function jt()  { return new THREE.MeshStandardMaterial({ color: 0xc4cad6, metalness: 0.26, roughness: 0.38 }); }
+  function dk()  { return new THREE.MeshStandardMaterial({ color: 0x0a1828, metalness: 0.82, roughness: 0.18, emissive: 0x082040, emissiveIntensity: 0.5 }); }
+  function ac()  { return new THREE.MeshBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.88, blending: THREE.AdditiveBlending }); }
+  function gd()  { return new THREE.MeshBasicMaterial({ color: 0xf59e0b, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending }); }
 
-  var icoGeo = new THREE.IcosahedronGeometry(0.90, 3);
-  var pos = icoGeo.attributes.position;
-  for (var i = 0; i < pos.count; i++) {
-    var ix = pos.getX(i), iy = pos.getY(i), iz = pos.getZ(i);
-    var n = Math.sin(ix*4.1)*Math.cos(iy*3.6)*0.18
-          + Math.sin(iy*2.7)*Math.sin(iz*3.9)*0.14
-          + Math.cos(ix*5.3)*Math.sin(iy*4.2)*0.09;
-    var len = Math.sqrt(ix*ix + iy*iy + iz*iz);
-    if (len > 0) { pos.setXYZ(i, ix*(1+n*0.65), iy*(1+n*0.65), iz*(1+n*0.65)); }
+  function mk(geo, mat, x, y, z, rx, ry, rz) {
+    var m = new THREE.Mesh(geo, mat);
+    m.position.set(x||0, y||0, z||0);
+    if (rx) m.rotation.x = rx;
+    if (ry) m.rotation.y = ry;
+    if (rz) m.rotation.z = rz;
+    return m;
   }
-  pos.needsUpdate = true;
-  icoGeo.computeVertexNormals();
 
-  /* Golden wireframe */
-  var wireMat = new THREE.LineBasicMaterial({
-    color: 0xfbbf24, transparent: true, opacity: 0.38,
-    blending: THREE.AdditiveBlending
+  /* ── Robot root ── */
+  var robotGroup = new THREE.Group();
+  scene.add(robotGroup);
+
+  /* LEGS — pivot at hip */
+  var lLeg = new THREE.Group(); lLeg.position.set(-0.165, 1.02, 0); robotGroup.add(lLeg);
+  var rLeg = new THREE.Group(); rLeg.position.set( 0.165, 1.02, 0); robotGroup.add(rLeg);
+  [lLeg, rLeg].forEach(function(g) {
+    g.add(mk(new THREE.CylinderGeometry(0.098, 0.088, 0.44, 11), wh(),  0, -0.22, 0));
+    g.add(mk(new THREE.SphereGeometry(0.094, 11, 10),              jt(),  0, -0.46, 0));
+    g.add(mk(new THREE.CylinderGeometry(0.086, 0.078, 0.42, 11),  wh(),  0, -0.70, 0));
+    g.add(mk(new THREE.SphereGeometry(0.080, 9, 9),                jt(),  0, -0.93, 0));
+    g.add(mk(new THREE.BoxGeometry(0.18, 0.090, 0.30),             wh(),  0, -1.00, 0.055));
   });
-  brainGrp.add(new THREE.LineSegments(new THREE.WireframeGeometry(icoGeo), wireMat));
 
-  /* Soft inner fill */
-  brainGrp.add(new THREE.Mesh(icoGeo, new THREE.MeshBasicMaterial({
-    color: 0xf59e0b, transparent: true, opacity: 0.018,
-    blending: THREE.AdditiveBlending, side: THREE.FrontSide
-  })));
+  /* PELVIS */
+  robotGroup.add(mk(new THREE.BoxGeometry(0.46, 0.17, 0.27), wh(), 0, 1.08, 0));
 
-  /* GSAP: gentle float + opacity breathe */
-  if (window.gsap) {
-    gsap.to(brainGrp.position, { y: 0.80, duration: 3.8, ease: 'sine.inOut', yoyo: true, repeat: -1 });
-    gsap.to(wireMat, { opacity: 0.20, duration: 2.6, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+  /* TORSO */
+  robotGroup.add(mk(new THREE.BoxGeometry(0.60, 0.58, 0.33), wh(), 0, 1.40, 0));
+  robotGroup.add(mk(new THREE.BoxGeometry(0.32, 0.09, 0.04), ac(), 0, 1.44, 0.18));
+  robotGroup.add(mk(new THREE.SphereGeometry(0.038, 8, 8),   gd(), 0, 1.29, 0.18));
+
+  /* ARMS — pivot at shoulder */
+  var lShl = new THREE.Group(); lShl.position.set(-0.38, 1.64, 0); robotGroup.add(lShl);
+  var rShl = new THREE.Group(); rShl.position.set( 0.38, 1.64, 0); robotGroup.add(rShl);
+  function buildArm(g, isRight) {
+    g.add(mk(new THREE.SphereGeometry(0.110, 11, 11),             jt()));
+    g.add(mk(new THREE.CylinderGeometry(0.083, 0.074, 0.40, 11), wh(), 0, -0.22, 0));
+    g.add(mk(new THREE.SphereGeometry(0.076, 9, 9),               jt(), 0, -0.44, 0));
+    g.add(mk(new THREE.CylinderGeometry(0.072, 0.064, 0.38, 11), wh(), 0, -0.64, 0));
+    g.add(mk(new THREE.SphereGeometry(0.080, 10, 10),             wh(), 0, -0.84, 0));
+    if (isRight) {
+      var fing = mk(new THREE.CylinderGeometry(0.018, 0.014, 0.22, 7), wh(), -0.14, -0.84, 0, 0, 0, Math.PI / 2);
+      g.add(fing);
+      g.add(mk(new THREE.SphereGeometry(0.024, 7, 7), gd(), -0.27, -0.84, 0));
+    }
+  }
+  buildArm(lShl, false);
+  buildArm(rShl, true);
+
+  /* NECK */
+  robotGroup.add(mk(new THREE.CylinderGeometry(0.090, 0.106, 0.20, 10), jt(), 0, 1.76, 0));
+
+  /* HEAD */
+  var headGrp = new THREE.Group(); headGrp.position.set(0, 1.98, 0); robotGroup.add(headGrp);
+  headGrp.add(mk(new THREE.SphereGeometry(0.272, 14, 12),             wh(), 0, 0.06, 0));
+  headGrp.add(mk(new THREE.CylinderGeometry(0.268, 0.262, 0.05, 14), wh(), 0, -0.04, 0));
+  headGrp.add(mk(new THREE.BoxGeometry(0.37, 0.16, 0.04),             dk(), 0, 0.07, 0.24));
+  headGrp.add(mk(new THREE.BoxGeometry(0.28, 0.11, 0.02),             jt(), 0, -0.13, 0.24));
+  headGrp.add(mk(new THREE.BoxGeometry(0.44, 0.21, 0.04),             jt(), 0, 0.05, -0.24));
+  [-0.08, 0.08].forEach(function(ex) {
+    headGrp.add(mk(new THREE.SphereGeometry(0.022, 8, 8), ac(), ex, 0.07, 0.27));
+  });
+
+  /* Start off-screen right */
+  robotGroup.position.set(9.5, 0, 0);
+
+  /* ── Step-based walk ── */
+  var STEP_DUR  = 0.40;
+  var STEP_DIST = 0.65;
+  var TARGET_X  = 3.0;
+
+  function settle() {
+    gsap.to(robotGroup.rotation, { z: 0, duration: 0.3 });
+    gsap.to(lLeg.rotation, { x: 0, duration: 0.35 });
+    gsap.to(rLeg.rotation, { x: 0, duration: 0.35 });
+    gsap.to(lShl.rotation, { x: 0, duration: 0.35 });
+    gsap.to(rShl.rotation, { x: 0, z: 0, duration: 0.35 });
+    gsap.to(robotGroup.position, { y: 0, duration: 0.5 });
+    gsap.delayedCall(0.5, function() {
+      gsap.to(robotGroup.rotation, { y: -0.50, duration: 0.8 });
+      gsap.to(headGrp.rotation, { y: -0.15, duration: 0.8 });
+      gsap.delayedCall(0.5, function() {
+        gsap.to(rShl.rotation, { z: -1.08, duration: 0.9, ease: 'back.out(1.2)' });
+        gsap.to(rShl.rotation, { x: -0.14, duration: 0.7, delay: 0.1 });
+      });
+      gsap.delayedCall(1.6, function() {
+        gsap.to(headGrp.rotation, { x: 0.06, duration: 2.4, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+        gsap.to(robotGroup.position, { y: 0.03, duration: 3.0, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+        gsap.to(lShl.rotation, { x: -0.05, duration: 2.0, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+      });
+    });
   }
 
-  var active = true;
+  function takeStep(stepNum, curX, onDone) {
+    if (curX <= TARGET_X) { if (onDone) onDone(); return; }
+    var nextX = Math.max(curX - STEP_DIST, TARGET_X);
+    var isLeft = stepNum % 2 === 0;
+    var swingLeg  = isLeft ? lLeg  : rLeg;
+    var stanceLeg = isLeft ? rLeg  : lLeg;
+    var swingArm  = isLeft ? rShl  : lShl;
+    var stanceArm = isLeft ? lShl  : rShl;
+
+    /* Advance x by one step */
+    gsap.to(robotGroup.position, {
+      x: nextX, duration: STEP_DUR, ease: 'linear',
+      onComplete: function() { takeStep(stepNum + 1, nextX, onDone); }
+    });
+
+    /* Swing leg: lift forward then plant */
+    var swTL = gsap.timeline();
+    swTL.to(swingLeg.rotation, { x: -0.44, duration: STEP_DUR * 0.55, ease: 'power2.out' });
+    swTL.to(swingLeg.rotation, { x:  0.06, duration: STEP_DUR * 0.45, ease: 'power2.in'  });
+
+    /* Stance leg: push back then recover */
+    var stTL = gsap.timeline();
+    stTL.to(stanceLeg.rotation, { x: 0.28, duration: STEP_DUR * 0.55, ease: 'sine.out' });
+    stTL.to(stanceLeg.rotation, { x: 0.02, duration: STEP_DUR * 0.45, ease: 'sine.in'  });
+
+    /* Body bob — slight rise then fall each step */
+    var bobTL = gsap.timeline();
+    bobTL.to(robotGroup.position, { y: 0.05, duration: STEP_DUR * 0.35, ease: 'power2.out' });
+    bobTL.to(robotGroup.position, { y: 0.00, duration: STEP_DUR * 0.35, ease: 'power2.in'  });
+    bobTL.to(robotGroup.position, { y: 0.03, duration: STEP_DUR * 0.15, ease: 'power2.out' });
+    bobTL.to(robotGroup.position, { y: 0.00, duration: STEP_DUR * 0.15, ease: 'power2.in'  });
+
+    /* Arm swing (opposite to leg) */
+    gsap.to(swingArm.rotation,  { x: -0.26, duration: STEP_DUR, ease: 'sine.inOut' });
+    gsap.to(stanceArm.rotation, { x:  0.26, duration: STEP_DUR, ease: 'sine.inOut' });
+
+    /* Slight lateral sway */
+    gsap.to(robotGroup.rotation, {
+      z: isLeft ? 0.022 : -0.022, duration: STEP_DUR, ease: 'sine.inOut'
+    });
+  }
+
+  var entryDone = false;
+  function startEntry() {
+    if (entryDone || !window.gsap) return;
+    entryDone = true;
+    takeStep(0, 9.5, settle);
+  }
+
+  /* Trigger on scroll into view */
   if (window.IntersectionObserver) {
-    new IntersectionObserver(function(e) { active = e[0].isIntersecting; }, { threshold: 0.05 }).observe(wrap);
+    new IntersectionObserver(function(ent) {
+      if (ent[0].isIntersecting) startEntry();
+    }, { threshold: 0.2 }).observe(wrap);
+  } else {
+    setTimeout(startEntry, 600);
   }
 
-  function brainLoop() {
-    requestAnimationFrame(brainLoop);
-    if (!active) return;
-    brainGrp.rotation.y += 0.0026;
+  /* Render loop — pauses when off-screen */
+  var rActive = false;
+  if (window.IntersectionObserver) {
+    new IntersectionObserver(function(e) { rActive = e[0].isIntersecting; }, { threshold: 0.05 }).observe(wrap);
+  } else { rActive = true; }
+
+  function robotLoop() {
+    requestAnimationFrame(robotLoop);
+    if (!rActive) return;
     renderer.render(scene, camera);
   }
-  brainLoop();
+  robotLoop();
 
   window.addEventListener('resize', function() {
-    W = wrap.offsetWidth; H = wrap.offsetHeight || 460;
-    renderer.setSize(W, H);
-    camera.aspect = W / H;
-    camera.updateProjectionMatrix();
+    W = wrap.offsetWidth; H = Math.max(wrap.offsetHeight || 340, 280);
+    renderer.setSize(W, H); camera.aspect = W / H; camera.updateProjectionMatrix();
   });
 })();
+
+/* ── Statement section reveal ── */
+(function() {
+  var sec = document.getElementById('statement');
+  if (!sec) return;
+  var l1 = sec.querySelector('.statement-l1');
+  var l2 = sec.querySelector('.statement-l2');
+  if (window.IntersectionObserver) {
+    var obs = new IntersectionObserver(function(entries) {
+      if (entries[0].isIntersecting) {
+        l1.classList.add('vis');
+        l2.classList.add('vis');
+        obs.disconnect();
+      }
+    }, { threshold: 0.35 });
+    obs.observe(sec);
+  } else {
+    l1.classList.add('vis'); l2.classList.add('vis');
+  }
+})();
+
+</script>
+</body>
+</html
 
 
 
