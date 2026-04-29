@@ -86,7 +86,7 @@
             <td style="color:var(--muted);font-size:11px;white-space:nowrap">
               {% if u.last_login_at %}
                 <span title="{{ u.last_login_at.strftime('%Y-%m-%d %H:%M UTC') }}">
-                  {{ time_ago(u.last_login_at) }}
+                  {{ u.last_login_at | time_ago }}
                 </span>
               {% else %}—{% endif %}
             </td>

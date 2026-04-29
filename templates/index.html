@@ -5608,30 +5608,73 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   }
 
-  // ── CHANGE 3: Exchange filter ──
+  // ── CHANGE 3: Exchange filter — show all, block disallowed with popup ──
+  window._allowedExchanges = ['binance','bybit','okx','mexc'];
   function applyExchangeFilter(perms){
-    var allowed = perms.allowed_exchanges || ['binance','bybit','okx','mexc'];
+    window._allowedExchanges = perms.allowed_exchanges || ['binance','bybit','okx','mexc'];
     var select = document.getElementById('exchangeSelect');
     if(!select) return;
-    var currentVal = select.value;
-    Array.from(select.options).forEach(function(opt){
-      if(allowed.indexOf(opt.value) < 0) opt.remove();
-    });
-    if(!Array.from(select.options).find(function(o){ return o.value === currentVal; })){
-      if(select.options.length > 0){
-        select.value = select.options[0].value;
-        if(window.onExchangeChange) onExchangeChange(select.value);
-      }
+    // If current selection is not allowed, switch to first allowed
+    if(window._allowedExchanges.indexOf(select.value) < 0){
+      var firstAllowed = window._allowedExchanges[0] || 'binance';
+      select.value = firstAllowed;
+      if(window.onExchangeChange) onExchangeChange(firstAllowed);
     }
   }
+  // Intercept exchange selection — show locked popup for disallowed exchanges
+  (function(){
+    var _origOnExchangeChange = window.onExchangeChange;
+    window.onExchangeChange = function(ex){
+      if(window._allowedExchanges && window._allowedExchanges.indexOf(ex) < 0){
+        var select = document.getElementById('exchangeSelect');
+        var allowed = window._allowedExchanges;
+        var fallback = allowed.length > 0 ? allowed[0] : 'binance';
+        if(select) select.value = fallback;
+        var allowedStr = allowed.map(function(e){ return e.charAt(0).toUpperCase()+e.slice(1); }).join(', ');
+        var msg = document.getElementById('lockedMsg');
+        if(msg) msg.textContent = 'You can only use: ' + allowedStr + '. Contact @MalikZyNi to get access to more exchanges.';
+        var ov = document.getElementById('lockedOverlay');
+        if(ov) ov.style.display = 'flex';
+        if(_origOnExchangeChange) _origOnExchangeChange(fallback);
+        return;
+      }
+      if(_origOnExchangeChange) _origOnExchangeChange(ex);
+    };
+  })();
 
-  // ── CHANGE 4: Timeframe filter ──
+  // ── CHANGE 4: Timeframe filter — rebuild ALL tf selects dynamically ──
   function applyTimeframeFilter(perms){
     var allowed = perms.allowed_timeframes || ['15m','1h','4h'];
-    var tfSelect = document.getElementById('tf');
-    if(!tfSelect) return;
-    Array.from(tfSelect.options).forEach(function(opt){
-      if(allowed.indexOf(opt.value) < 0) opt.remove();
+
+    // Map each select id to its full option set (label = value for TF)
+    var TF_SELECTS = {
+      'tf':           ['15m','30m','1h','4h','1d'],
+      'fibTf':        ['15m','30m','1h','4h','1d'],
+      'compressedTf': ['15m','30m','1h','4h','1d'],
+      'trendingTf':   ['15m','30m','1h','4h','1d'],
+      'wlFibTf':      ['15m','30m','1h','4h','1d']
+    };
+    Object.keys(TF_SELECTS).forEach(function(id){
+      var sel = document.getElementById(id);
+      if(!sel) return;
+      var prev = sel.value;
+      var opts = TF_SELECTS[id].filter(function(tf){ return allowed.indexOf(tf) >= 0; });
+      sel.innerHTML = '';
+      opts.forEach(function(tf){
+        var o = document.createElement('option');
+        o.value = tf; o.textContent = tf;
+        sel.appendChild(o);
+      });
+      sel.value = (opts.indexOf(prev) >= 0) ? prev : (opts[0] || '');
+    });
+
+    // WL timeframe checkboxes (wlTf15m, wlTf30m, wlTf1h, wlTf4h, wlTf1d)
+    var WL_TF_MAP = {'15m':'wlTf15m','30m':'wlTf30m','1h':'wlTf1h','4h':'wlTf4h','1d':'wlTf1d'};
+    Object.keys(WL_TF_MAP).forEach(function(tf){
+      var cb = document.getElementById(WL_TF_MAP[tf]);
+      if(!cb) return;
+      var lbl = cb.closest('label') || cb.parentElement;
+      if(lbl) lbl.style.display = (allowed.indexOf(tf) >= 0) ? '' : 'none';
     });
   }
 
