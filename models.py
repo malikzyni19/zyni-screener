@@ -166,3 +166,88 @@ class LoginHistory(db.Model):
 
     def __repr__(self) -> str:
         return f"<LoginHistory user_id={self.user_id} at={self.logged_in_at}>"
+
+
+# ─────────────────────────────────────────────────────────────
+# Intelligence Foundation Tables
+# ─────────────────────────────────────────────────────────────
+
+class SignalEvent(db.Model):
+    __tablename__ = "signal_events"
+
+    id             = db.Column(db.Integer, primary_key=True)
+    signal_id      = db.Column(db.String(64), unique=True, nullable=False)
+    pair           = db.Column(db.String(20), nullable=False)
+    module         = db.Column(db.String(20), nullable=False)
+    timeframe      = db.Column(db.String(10), nullable=False)
+    direction      = db.Column(db.String(10), nullable=False)
+    score          = db.Column(db.Integer, default=0)
+    zone_high      = db.Column(db.Float, nullable=False)
+    zone_low       = db.Column(db.Float, nullable=False)
+    detected_price = db.Column(db.Float, nullable=False)
+    detected_at    = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    exchange       = db.Column(db.String(20), default="binance")
+    strategy_ver   = db.Column(db.String(10), default="1.0")
+    settings_json  = db.Column(db.Text, nullable=True)
+    status         = db.Column(db.String(30), default="WAITING_FOR_ENTRY")
+    source         = db.Column(db.String(20), default="live")
+
+    outcome = db.relationship("SignalOutcome", uselist=False, backref="event",
+                              foreign_keys="SignalOutcome.signal_id",
+                              primaryjoin="SignalEvent.signal_id == SignalOutcome.signal_id")
+
+    def __repr__(self) -> str:
+        return f"<SignalEvent {self.signal_id} {self.pair} {self.module} {self.status}>"
+
+
+class SignalOutcome(db.Model):
+    __tablename__ = "signal_outcomes"
+
+    id                   = db.Column(db.Integer, primary_key=True)
+    signal_id            = db.Column(db.String(64), db.ForeignKey("signal_events.signal_id"),
+                                     unique=True, nullable=False)
+    entry_price          = db.Column(db.Float, nullable=True)
+    entry_time           = db.Column(db.DateTime, nullable=True)
+    target_price         = db.Column(db.Float, nullable=True)
+    stop_price           = db.Column(db.Float, nullable=True)
+    exit_price           = db.Column(db.Float, nullable=True)
+    exit_time            = db.Column(db.DateTime, nullable=True)
+    result               = db.Column(db.String(20), nullable=True)
+    result_reason        = db.Column(db.String(50), nullable=True)
+    mfe_pct              = db.Column(db.Float, nullable=True)
+    mae_pct              = db.Column(db.Float, nullable=True)
+    time_to_entry_hours  = db.Column(db.Float, nullable=True)
+    time_to_result_hours = db.Column(db.Float, nullable=True)
+    bounce_threshold_pct = db.Column(db.Float, nullable=True)
+
+    def __repr__(self) -> str:
+        return f"<SignalOutcome {self.signal_id} result={self.result}>"
+
+
+class BacktestRun(db.Model):
+    __tablename__ = "backtest_runs"
+
+    id               = db.Column(db.Integer, primary_key=True)
+    run_name         = db.Column(db.String(100), nullable=True)
+    config_json      = db.Column(db.Text, nullable=True)
+    run_at           = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    completed_at     = db.Column(db.DateTime, nullable=True)
+    status           = db.Column(db.String(20), default="running")
+    pairs_tested     = db.Column(db.Integer, default=0)
+    total_signals    = db.Column(db.Integer, default=0)
+    entered_signals  = db.Column(db.Integer, default=0)
+    won_count        = db.Column(db.Integer, default=0)
+    lost_count       = db.Column(db.Integer, default=0)
+    expired_count    = db.Column(db.Integer, default=0)
+    ambiguous_count  = db.Column(db.Integer, default=0)
+    win_rate_entered = db.Column(db.Float, nullable=True)
+    win_rate_total   = db.Column(db.Float, nullable=True)
+    date_from        = db.Column(db.Date, nullable=True)
+    date_to          = db.Column(db.Date, nullable=True)
+    run_by           = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    error_message    = db.Column(db.Text, nullable=True)
+
+    runner = db.relationship("User", foreign_keys=[run_by])
+
+    def __repr__(self) -> str:
+        return f"<BacktestRun id={self.id} status={self.status}>"
