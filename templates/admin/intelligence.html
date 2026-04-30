@@ -175,183 +175,238 @@
 </div><!-- #int-content -->
 
 <script>
-(function(){
+/* ── Intelligence Stats — all functions at script scope, no IIFE ── */
 
-function esc(v){ return v==null?'—':String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-
-function fmtPct(v){ return v==null?'—':v.toFixed(2)+'%'; }
-
-function statusBadge(s){
-  if(!s)return'—';
-  const m={'WAITING_FOR_ENTRY':['st-waiting','WAITING'],
-            'ENTERED':['st-entered','ENTERED'],
-            'WON':['st-won','WON'],
-            'LOST':['st-lost','LOST'],
-            'EXPIRED':['st-expired','EXPIRED'],
-            'AMBIGUOUS':['st-ambiguous','AMBIG']};
-  const[cls,lbl]=m[s]||['st-waiting',s];
-  return`<span class="${cls}">${lbl}</span>`;
+function intSt_esc(v) {
+  if (v == null) return '—';
+  return String(v).replace(/[&<>"']/g, function(c) {
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
 }
 
-function reliabilityBadge(ok){
-  return ok?'<span class="badge-ok">OK</span>':'<span class="badge-low">LOW SAMPLE</span>';
+function intSt_pct(v) { return v == null ? '—' : v.toFixed(2) + '%'; }
+
+function intSt_statusBadge(s) {
+  if (!s) return '—';
+  var map = {
+    'WAITING_FOR_ENTRY': ['st-waiting', 'WAITING'],
+    'ENTERED':           ['st-entered', 'ENTERED'],
+    'WON':               ['st-won',     'WON'],
+    'LOST':              ['st-lost',    'LOST'],
+    'EXPIRED':           ['st-expired', 'EXPIRED'],
+    'AMBIGUOUS':         ['st-ambiguous','AMBIG']
+  };
+  var pair = map[s] || ['st-waiting', s];
+  return '<span class="' + pair[0] + '">' + pair[1] + '</span>';
 }
 
-function renderCards(t){
-  const defs=[
-    {label:'Total Signals',   val:t.total_signals,    color:'cyan'},
-    {label:'Waiting Entry',   val:t.waiting_for_entry, color:''},
-    {label:'Entered',         val:t.entered,           color:'blue'},
-    {label:'Won',             val:t.won,               color:'green'},
-    {label:'Lost',            val:t.lost,              color:''},
-    {label:'Expired',         val:t.expired,           color:''},
-    {label:'Ambiguous',       val:t.ambiguous,         color:'amber'},
-    {label:'Resolved Total',  val:t.resolved_total,    color:''},
+function intSt_reliBadge(ok) {
+  return ok
+    ? '<span class="badge-ok">OK</span>'
+    : '<span class="badge-low">LOW SAMPLE</span>';
+}
+
+function intSt_renderCards(t) {
+  var defs = [
+    {l:'Total Signals',   v:t.total_signals,    c:'cyan'},
+    {l:'Waiting Entry',   v:t.waiting_for_entry, c:''},
+    {l:'Entered',         v:t.entered,           c:'blue'},
+    {l:'Won',             v:t.won,               c:'green'},
+    {l:'Lost',            v:t.lost,              c:''},
+    {l:'Expired',         v:t.expired,           c:''},
+    {l:'Ambiguous',       v:t.ambiguous,         c:'amber'},
+    {l:'Resolved Total',  v:t.resolved_total,    c:''}
   ];
-  document.getElementById('int-cards').innerHTML=defs.map(d=>`
-    <div class="adm-stat-card${d.color?' '+d.color:''}">
-      <div class="adm-stat-label">${d.label}</div>
-      <div class="adm-stat-value${d.color?' '+d.color:''}">${d.val}</div>
-    </div>`).join('');
+  var html = '';
+  for (var i = 0; i < defs.length; i++) {
+    var d = defs[i], cc = d.c ? ' ' + d.c : '';
+    html += '<div class="adm-stat-card' + cc + '">' +
+            '<div class="adm-stat-label">' + d.l + '</div>' +
+            '<div class="adm-stat-value' + cc + '">' + d.v + '</div>' +
+            '</div>';
+  }
+  document.getElementById('int-cards').innerHTML = html;
 }
 
-function renderWinRates(wr){
-  const defs=[
-    {label:'Win Rate (Resolved)',     val:wr.win_rate_resolved,       color:'green'},
-    {label:'Win Rate (WON/LOST)',     val:wr.win_rate_entered,        color:'green'},
-    {label:'Loss Rate (Resolved)',    val:wr.loss_rate_resolved,      color:'red'},
-    {label:'Ambiguous Rate',          val:wr.ambiguous_rate_resolved, color:'amber'},
+function intSt_renderWinRates(wr) {
+  var defs = [
+    {l:'Win Rate (Resolved)',  v:wr.win_rate_resolved,       c:'green'},
+    {l:'Win Rate (WON/LOST)', v:wr.win_rate_entered,        c:'green'},
+    {l:'Loss Rate (Resolved)', v:wr.loss_rate_resolved,      c:'red'},
+    {l:'Ambiguous Rate',       v:wr.ambiguous_rate_resolved, c:'amber'}
   ];
-  document.getElementById('int-wr').innerHTML=defs.map(d=>`
-    <div class="int-wr-card">
-      <div class="int-wr-label">${d.label}</div>
-      <div class="int-wr-value ${d.color}">${fmtPct(d.val)}</div>
-    </div>`).join('');
+  var html = '';
+  for (var i = 0; i < defs.length; i++) {
+    var d = defs[i];
+    html += '<div class="int-wr-card">' +
+            '<div class="int-wr-label">' + d.l + '</div>' +
+            '<div class="int-wr-value ' + d.c + '">' + intSt_pct(d.v) + '</div>' +
+            '</div>';
+  }
+  document.getElementById('int-wr').innerHTML = html;
 }
 
-function reliRow(d,keyLabel,keyVal){
-  return`<tr>
-    <td style="font-family:'JetBrains Mono',monospace;color:var(--cyan)">${esc(d[keyLabel])}</td>
-    <td>${d.total}</td>
-    <td>${d.waiting_for_entry}</td>
-    <td>${d.entered}</td>
-    <td style="color:var(--green)">${d.won}</td>
-    <td style="color:var(--red)">${d.lost}</td>
-    <td>${d.expired}</td>
-    <td style="color:var(--amber)">${d.ambiguous}</td>
-    <td>${reliabilityBadge(d.sample_reliable)}</td>
-  </tr>`;
+function intSt_reliRow(d, key) {
+  return '<tr>' +
+    '<td style="font-family:\'JetBrains Mono\',monospace;color:var(--cyan)">' + intSt_esc(d[key]) + '</td>' +
+    '<td>' + d.total + '</td>' +
+    '<td>' + d.waiting_for_entry + '</td>' +
+    '<td>' + d.entered + '</td>' +
+    '<td style="color:var(--green)">' + d.won + '</td>' +
+    '<td style="color:var(--red)">' + d.lost + '</td>' +
+    '<td>' + d.expired + '</td>' +
+    '<td style="color:var(--amber)">' + d.ambiguous + '</td>' +
+    '<td>' + intSt_reliBadge(d.sample_reliable) + '</td>' +
+    '</tr>';
 }
 
-function renderModuleTable(rows){
-  const tb=document.getElementById('tbl-module');
-  tb.innerHTML=rows.length?rows.map(r=>reliRow(r,'module')).join('')
-    :'<tr><td colspan="9" class="adm-empty">No data</td></tr>';
+function intSt_renderModuleTable(rows) {
+  var tb = document.getElementById('tbl-module');
+  if (!rows || !rows.length) {
+    tb.innerHTML = '<tr><td colspan="9" class="adm-empty">No data</td></tr>';
+    return;
+  }
+  var html = '';
+  for (var i = 0; i < rows.length; i++) html += intSt_reliRow(rows[i], 'module');
+  tb.innerHTML = html;
 }
 
-function renderTfTable(rows){
-  const tb=document.getElementById('tbl-tf');
-  tb.innerHTML=rows.length?rows.map(r=>reliRow(r,'timeframe')).join('')
-    :'<tr><td colspan="9" class="adm-empty">No data</td></tr>';
+function intSt_renderTfTable(rows) {
+  var tb = document.getElementById('tbl-tf');
+  if (!rows || !rows.length) {
+    tb.innerHTML = '<tr><td colspan="9" class="adm-empty">No data</td></tr>';
+    return;
+  }
+  var html = '';
+  for (var i = 0; i < rows.length; i++) html += intSt_reliRow(rows[i], 'timeframe');
+  tb.innerHTML = html;
 }
 
-function renderScoreTable(rows){
-  document.getElementById('tbl-score').innerHTML=rows.map(b=>`<tr>
-    <td style="font-family:'JetBrains Mono',monospace">${esc(b.bucket)}</td>
-    <td>${b.total}</td>
-    <td style="color:var(--green)">${b.won}</td>
-    <td style="color:var(--red)">${b.lost}</td>
-    <td>${fmtPct(b.win_rate)}</td>
-  </tr>`).join('');
+function intSt_renderScoreTable(rows) {
+  var html = '';
+  for (var i = 0; i < rows.length; i++) {
+    var b = rows[i];
+    html += '<tr>' +
+      '<td style="font-family:\'JetBrains Mono\',monospace">' + intSt_esc(b.bucket) + '</td>' +
+      '<td>' + b.total + '</td>' +
+      '<td style="color:var(--green)">' + b.won + '</td>' +
+      '<td style="color:var(--red)">' + b.lost + '</td>' +
+      '<td>' + intSt_pct(b.win_rate) + '</td>' +
+      '</tr>';
+  }
+  document.getElementById('tbl-score').innerHTML = html;
 }
 
-function renderSignals(sigs,total){
-  document.getElementById('int-sig-count').textContent=`${sigs.length} shown / ${total} total`;
-  const fmt=dt=>dt?dt.replace('T',' ').slice(0,16):'—';
-  document.getElementById('tbl-signals').innerHTML=sigs.length?sigs.map(s=>`<tr>
-    <td style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace">${fmt(s.detected_at)}</td>
-    <td style="font-weight:600">${esc(s.pair)}</td>
-    <td style="font-family:'JetBrains Mono',monospace">${esc(s.timeframe)}</td>
-    <td><span class="badge cyan">${esc(s.module)}</span></td>
-    <td style="color:${s.direction==='bullish'?'var(--green)':'var(--red)'}">${esc(s.direction)}</td>
-    <td style="font-family:'JetBrains Mono',monospace">${s.score!=null?s.score:'—'}</td>
-    <td>${statusBadge(s.status)}</td>
-    <td>${s.result?`<span class="badge ${s.result==='WIN'?'green':s.result==='LOSS'?'red':'amber'}">${esc(s.result)}</span>`:'—'}</td>
-    <td style="font-size:11px;color:var(--muted)">${esc(s.result_reason)}</td>
-    <td style="font-size:11px;font-family:'JetBrains Mono',monospace;white-space:nowrap">
-      ${s.zone_high!=null?s.zone_high.toFixed(4):'—'} / ${s.zone_low!=null?s.zone_low.toFixed(4):'—'}
-    </td>
-  </tr>`).join(''):'<tr><td colspan="10" class="adm-empty">No signals</td></tr>';
+function intSt_renderSignals(sigs, total) {
+  document.getElementById('int-sig-count').textContent =
+    (sigs ? sigs.length : 0) + ' shown / ' + total + ' total';
+
+  if (!sigs || !sigs.length) {
+    document.getElementById('tbl-signals').innerHTML =
+      '<tr><td colspan="10" class="adm-empty">No signals</td></tr>';
+    return;
+  }
+
+  var html = '';
+  for (var i = 0; i < sigs.length; i++) {
+    var s = sigs[i];
+    var dt = s.detected_at ? s.detected_at.replace('T', ' ').slice(0, 16) : '—';
+    var dirCol = s.direction === 'bullish' ? 'var(--green)' : 'var(--red)';
+    var zh = s.zone_high != null ? s.zone_high.toFixed(4) : '—';
+    var zl = s.zone_low  != null ? s.zone_low.toFixed(4)  : '—';
+    var resBadge = '—';
+    if (s.result) {
+      var rc = s.result === 'WIN' ? 'green' : s.result === 'LOSS' ? 'red' : 'amber';
+      resBadge = '<span class="badge ' + rc + '">' + intSt_esc(s.result) + '</span>';
+    }
+    html += '<tr>' +
+      '<td style="font-size:11px;color:var(--muted);font-family:\'JetBrains Mono\',monospace">' + dt + '</td>' +
+      '<td style="font-weight:600">' + intSt_esc(s.pair) + '</td>' +
+      '<td style="font-family:\'JetBrains Mono\',monospace">' + intSt_esc(s.timeframe) + '</td>' +
+      '<td><span class="badge cyan">' + intSt_esc(s.module) + '</span></td>' +
+      '<td style="color:' + dirCol + '">' + intSt_esc(s.direction) + '</td>' +
+      '<td style="font-family:\'JetBrains Mono\',monospace">' + (s.score != null ? s.score : '—') + '</td>' +
+      '<td>' + intSt_statusBadge(s.status) + '</td>' +
+      '<td>' + resBadge + '</td>' +
+      '<td style="font-size:11px;color:var(--muted)">' + intSt_esc(s.result_reason) + '</td>' +
+      '<td style="font-size:11px;font-family:\'JetBrains Mono\',monospace;white-space:nowrap">' + zh + ' / ' + zl + '</td>' +
+      '</tr>';
+  }
+  document.getElementById('tbl-signals').innerHTML = html;
 }
 
-function showError(msg){
-  const el=document.getElementById('int-error');
-  el.textContent='Error: '+msg;
-  el.style.display='block';
+function intSt_showError(msg) {
+  var el = document.getElementById('int-error');
+  el.textContent = 'Error: ' + msg;
+  el.style.display = 'block';
 }
 
-var _btn=document.getElementById('int-refresh-btn');
-
-function fetchStats(){
+function intSt_fetchStats() {
   console.log('Intelligence refresh clicked');
 
-  // Button feedback
-  _btn.textContent='Refreshing…';
-  _btn.disabled=true;
+  var btn = document.getElementById('int-refresh-btn');
+  if (btn) { btn.textContent = 'Refreshing...'; btn.disabled = true; }
 
-  document.getElementById('int-loading').style.display='block';
-  document.getElementById('int-content').style.display='none';
-  document.getElementById('int-error').style.display='none';
+  document.getElementById('int-loading').style.display = 'block';
+  document.getElementById('int-content').style.display = 'none';
+  document.getElementById('int-error').style.display   = 'none';
 
-  var src=document.getElementById('f-source').value;
-  var mod=document.getElementById('f-module').value;
-  var tf =document.getElementById('f-timeframe').value;
+  var src = document.getElementById('f-source').value;
+  var mod = document.getElementById('f-module').value;
+  var tf  = document.getElementById('f-timeframe').value;
 
-  var params=new URLSearchParams({source:src,limit_recent:50});
-  if(mod) params.set('module',mod);
-  if(tf)  params.set('timeframe',tf);
+  var params = 'source=' + encodeURIComponent(src) + '&limit_recent=50';
+  if (mod) params += '&module='    + encodeURIComponent(mod);
+  if (tf)  params += '&timeframe=' + encodeURIComponent(tf);
 
-  var url='/admin/intelligence/stats?'+params.toString();
-  console.log('Fetching stats URL: '+url);
+  var url = '/admin/intelligence/stats?' + params;
+  console.log('Fetching stats URL: ' + url);
 
   fetch(url)
-    .then(function(r){return r.json();})
-    .then(function(data){
-      document.getElementById('int-loading').style.display='none';
-      _btn.textContent='⟳ Refresh';
-      _btn.disabled=false;
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (btn) { btn.textContent = '↻ Refresh'; btn.disabled = false; }
+      document.getElementById('int-loading').style.display = 'none';
 
-      if(!data.ok){showError(data.error||'Unknown error');return;}
+      if (!data.ok) { intSt_showError(data.error || 'Unknown error'); return; }
 
-      renderCards(data.totals);
-      renderWinRates(data.win_rates);
-      renderModuleTable(data.by_module);
-      renderTfTable(data.by_timeframe);
-      renderScoreTable(data.by_score_bucket);
-      renderSignals(data.recent_signals, data.totals.total_signals);
+      intSt_renderCards(data.totals);
+      intSt_renderWinRates(data.win_rates);
+      intSt_renderModuleTable(data.by_module);
+      intSt_renderTfTable(data.by_timeframe);
+      intSt_renderScoreTable(data.by_score_bucket);
+      intSt_renderSignals(data.recent_signals, data.totals.total_signals);
 
-      document.getElementById('int-ts').textContent=
-        'Updated: '+new Date().toLocaleTimeString();
-      document.getElementById('int-content').style.display='block';
+      document.getElementById('int-ts').textContent =
+        'Updated: ' + new Date().toLocaleTimeString();
+      document.getElementById('int-content').style.display = 'block';
       console.log('Stats loaded');
     })
-    .catch(function(err){
-      document.getElementById('int-loading').style.display='none';
-      _btn.textContent='⟳ Refresh';
-      _btn.disabled=false;
-      showError(err.message||'Network error');
+    .catch(function(err) {
+      if (btn) { btn.textContent = '↻ Refresh'; btn.disabled = false; }
+      document.getElementById('int-loading').style.display = 'none';
+      intSt_showError(err.message || 'Network error');
     });
 }
 
-// Wire button — works for both click (desktop) and touchend (mobile)
-_btn.addEventListener('click', fetchStats);
-_btn.addEventListener('touchend', function(e){
-  e.preventDefault();  // prevent ghost click on mobile
-  fetchStats();
-});
+/* Wire button + initial load.
+   readyState check handles both: script runs before or after DOMContentLoaded. */
+function intSt_init() {
+  var btn = document.getElementById('int-refresh-btn');
+  if (btn) {
+    btn.addEventListener('click', intSt_fetchStats);
+    btn.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      intSt_fetchStats();
+    });
+  }
+  intSt_fetchStats();
+}
 
-fetchStats();
-
-})();
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', intSt_init);
+} else {
+  intSt_init();
+}
 </script>
 {% endblock %}

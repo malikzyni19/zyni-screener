@@ -5470,31 +5470,58 @@ def api_scan():
 
     # ── Intelligence logging hook — NEVER blocks scan response ────────────
     try:
-        from signal_extractor import extract_zone_signal_from_api_scan_result
+        from signal_extractor import extract_zone_signals_from_api_scan_result
         from signal_logger import log_normalized_signal as _log_signal
+
+        # Derive allowed modules from what the user actually had checked.
+        # Both checked_signals (OR filter) and required_signals (AND filter)
+        # are combined — if either list mentions a signal type, that module
+        # is allowed in Intelligence.
+        _sig_union = set(checked_signals) | set(required_signals)
+        _intel_allowed: set = set()
+        if "OB" in _sig_union:
+            _intel_allowed.update({"ob", "bb"})  # OB family includes Breakers
+        if "BREAKER" in _sig_union:
+            _intel_allowed.add("bb")
+        if "FVG" in _sig_union:
+            _intel_allowed.add("fvg")
+        # Empty = no filter active → accept all supported modules
+        if not _intel_allowed:
+            _intel_allowed = {"ob", "fvg", "bb"}
 
         _intel_extracted = _intel_logged = _intel_dupes = _intel_skipped = _intel_errors = 0
 
         for _intel_r in results:
             try:
-                _intel_norm = extract_zone_signal_from_api_scan_result(_intel_r, exchange)
-                if _intel_norm is None:
+                _intel_sigs = extract_zone_signals_from_api_scan_result(
+                    _intel_r, exchange=exchange, allowed_modules=_intel_allowed
+                )
+                if not _intel_sigs:
                     _intel_skipped += 1
                     continue
-                _intel_extracted += 1
-                _intel_lres = _log_signal(_intel_norm, source="live")
-                if _intel_lres.get("logged"):
-                    _intel_logged += 1
-                elif _intel_lres.get("reason") == "duplicate":
-                    _intel_dupes += 1
-                else:
-                    _intel_errors += 1
+                for _intel_norm in _intel_sigs:
+                    _intel_extracted += 1
+                    _intel_lres = _log_signal(_intel_norm, source="live")
+                    if _intel_lres.get("logged"):
+                        _intel_logged += 1
+                    elif _intel_lres.get("reason") == "duplicate":
+                        _intel_dupes += 1
+                    else:
+                        _intel_errors += 1
             except Exception as _intel_re:
                 _intel_errors += 1
-                print(f"[Intel Hook api_scan] error: {_intel_re}")
+                print(f"[Intel Hook api_scan] result error: {_intel_re}")
 
-        print(f"[Intel Hook api_scan] extracted={_intel_extracted} logged={_intel_logged} "
-              f"dupes={_intel_dupes} skipped={_intel_skipped} errors={_intel_errors}")
+        _scan_filter_summary = (
+            f"ob={'OB' in _sig_union},fvg={'FVG' in _sig_union},"
+            f"bb={'BREAKER' in _sig_union}"
+        )
+        print(
+            f"[Intel Hook api_scan] scan_filters={_scan_filter_summary} "
+            f"allowed_modules={','.join(sorted(_intel_allowed))} "
+            f"extracted={_intel_extracted} logged={_intel_logged} "
+            f"dupes={_intel_dupes} skipped={_intel_skipped} errors={_intel_errors}"
+        )
     except Exception as _intel_hook_err:
         print(f"[Intel Hook api_scan] error: {_intel_hook_err}")
     # ── end Intelligence hook ──────────────────────────────────────────────
