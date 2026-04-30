@@ -92,7 +92,7 @@
       <option value="1d">1d</option>
     </select>
   </div>
-  <button class="int-btn" onclick="fetchStats()">⟳ Refresh</button>
+  <button type="button" id="int-refresh-btn" class="int-btn">⟳ Refresh</button>
   <span id="int-ts" style="font-size:10px;color:var(--muted);margin-left:4px"></span>
 </div>
 
@@ -290,23 +290,37 @@ function showError(msg){
   el.style.display='block';
 }
 
+var _btn=document.getElementById('int-refresh-btn');
+
 function fetchStats(){
+  console.log('Intelligence refresh clicked');
+
+  // Button feedback
+  _btn.textContent='Refreshing…';
+  _btn.disabled=true;
+
   document.getElementById('int-loading').style.display='block';
   document.getElementById('int-content').style.display='none';
   document.getElementById('int-error').style.display='none';
 
-  const src=document.getElementById('f-source').value;
-  const mod=document.getElementById('f-module').value;
-  const tf =document.getElementById('f-timeframe').value;
+  var src=document.getElementById('f-source').value;
+  var mod=document.getElementById('f-module').value;
+  var tf =document.getElementById('f-timeframe').value;
 
-  const params=new URLSearchParams({source:src,limit_recent:50});
+  var params=new URLSearchParams({source:src,limit_recent:50});
   if(mod) params.set('module',mod);
   if(tf)  params.set('timeframe',tf);
 
-  fetch('/admin/intelligence/stats?'+params.toString())
-    .then(r=>r.json())
-    .then(data=>{
+  var url='/admin/intelligence/stats?'+params.toString();
+  console.log('Fetching stats URL: '+url);
+
+  fetch(url)
+    .then(function(r){return r.json();})
+    .then(function(data){
       document.getElementById('int-loading').style.display='none';
+      _btn.textContent='⟳ Refresh';
+      _btn.disabled=false;
+
       if(!data.ok){showError(data.error||'Unknown error');return;}
 
       renderCards(data.totals);
@@ -319,12 +333,22 @@ function fetchStats(){
       document.getElementById('int-ts').textContent=
         'Updated: '+new Date().toLocaleTimeString();
       document.getElementById('int-content').style.display='block';
+      console.log('Stats loaded');
     })
-    .catch(err=>{
+    .catch(function(err){
       document.getElementById('int-loading').style.display='none';
+      _btn.textContent='⟳ Refresh';
+      _btn.disabled=false;
       showError(err.message||'Network error');
     });
 }
+
+// Wire button — works for both click (desktop) and touchend (mobile)
+_btn.addEventListener('click', fetchStats);
+_btn.addEventListener('touchend', function(e){
+  e.preventDefault();  // prevent ghost click on mobile
+  fetchStats();
+});
 
 fetchStats();
 
