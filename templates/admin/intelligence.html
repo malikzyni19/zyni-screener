@@ -1,0 +1,333 @@
+{% extends "admin/base.html" %}
+{% block title %}Intelligence — ZyNi Admin{% endblock %}
+{% block page_title %}📈 Intelligence Center{% endblock %}
+
+{% block content %}
+<style>
+/* ── Intelligence-specific styles ─────────────────────────── */
+.int-header{margin-bottom:22px}
+.int-header h1{font-size:20px;font-weight:700;color:var(--text);margin-bottom:4px}
+.int-header p{font-size:12px;color:var(--muted)}
+
+.int-filters{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:22px;
+             background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 16px}
+.int-filters label{font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:600;margin-right:4px}
+.int-filters select{background:var(--bg2);border:1px solid var(--border);color:var(--text);
+                    padding:5px 10px;border-radius:7px;font-size:12px;font-family:inherit}
+.int-filters select:focus{outline:none;border-color:var(--cyan)}
+.int-filter-group{display:flex;align-items:center;gap:6px}
+.int-btn{background:rgba(34,211,238,.1);border:1px solid rgba(34,211,238,.25);color:var(--cyan);
+         padding:5px 14px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;
+         letter-spacing:.5px;transition:all .2s}
+.int-btn:hover{background:rgba(34,211,238,.2)}
+
+.int-section-title{font-size:11px;letter-spacing:2px;text-transform:uppercase;
+                   color:var(--muted2);font-weight:600;margin-bottom:12px;margin-top:4px}
+
+/* ── Win rate cards ── */
+.int-wr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:24px}
+.int-wr-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px}
+.int-wr-label{font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:600;margin-bottom:8px}
+.int-wr-value{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;color:var(--cyan)}
+.int-wr-value.green{color:var(--green)}
+.int-wr-value.red{color:var(--red)}
+.int-wr-value.amber{color:var(--amber)}
+
+/* ── Status badges ── */
+.st-waiting{background:rgba(100,116,139,.12);color:#94a3b8;border:1px solid rgba(100,116,139,.25);
+            display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.5px}
+.st-entered{background:rgba(59,130,246,.12);color:var(--blue);border:1px solid rgba(59,130,246,.2);
+            display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.5px}
+.st-won{background:rgba(34,197,94,.12);color:var(--green);border:1px solid rgba(34,197,94,.2);
+        display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.5px}
+.st-lost{background:rgba(248,113,113,.12);color:var(--red);border:1px solid rgba(248,113,113,.2);
+         display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.5px}
+.st-expired{background:rgba(51,65,85,.3);color:#64748b;border:1px solid rgba(51,65,85,.5);
+            display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.5px}
+.st-ambiguous{background:rgba(245,158,11,.12);color:var(--amber);border:1px solid rgba(245,158,11,.2);
+              display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.5px}
+
+.badge-low{background:rgba(245,158,11,.1);color:var(--amber);border:1px solid rgba(245,158,11,.2);
+           display:inline-block;padding:2px 7px;border-radius:4px;font-size:9px;font-weight:700;letter-spacing:.5px}
+.badge-ok{background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.2);
+          display:inline-block;padding:2px 7px;border-radius:4px;font-size:9px;font-weight:700;letter-spacing:.5px}
+
+#int-loading{text-align:center;padding:40px;color:var(--muted);font-size:13px}
+#int-error{background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);color:var(--red);
+           padding:14px 18px;border-radius:10px;font-size:13px;margin-bottom:20px;display:none}
+</style>
+
+<!-- Header -->
+<div class="int-header">
+  <h1>ZyNi Intelligence Center</h1>
+  <p>Signal logging, resolver status, and live setup statistics.</p>
+</div>
+
+<!-- Filters -->
+<div class="int-filters">
+  <div class="int-filter-group">
+    <label>Source</label>
+    <select id="f-source">
+      <option value="live">live</option>
+      <option value="all">all</option>
+    </select>
+  </div>
+  <div class="int-filter-group">
+    <label>Module</label>
+    <select id="f-module">
+      <option value="">all</option>
+      <option value="ob">ob</option>
+      <option value="fvg">fvg</option>
+      <option value="bb">bb</option>
+    </select>
+  </div>
+  <div class="int-filter-group">
+    <label>Timeframe</label>
+    <select id="f-timeframe">
+      <option value="">all</option>
+      <option value="15m">15m</option>
+      <option value="30m">30m</option>
+      <option value="1h">1h</option>
+      <option value="4h">4h</option>
+      <option value="1d">1d</option>
+    </select>
+  </div>
+  <button class="int-btn" onclick="fetchStats()">⟳ Refresh</button>
+  <span id="int-ts" style="font-size:10px;color:var(--muted);margin-left:4px"></span>
+</div>
+
+<!-- Error banner -->
+<div id="int-error"></div>
+
+<!-- Loading -->
+<div id="int-loading">Loading intelligence data…</div>
+
+<!-- Content (hidden until data loads) -->
+<div id="int-content" style="display:none">
+
+  <!-- Overview cards -->
+  <p class="int-section-title">Overview</p>
+  <div class="adm-stats-grid" id="int-cards"></div>
+
+  <!-- Win rate cards -->
+  <p class="int-section-title">Win Rates</p>
+  <div class="int-wr-grid" id="int-wr"></div>
+
+  <!-- By Module -->
+  <div class="adm-card" style="margin-bottom:20px">
+    <div class="adm-card-header"><span class="adm-card-title">By Module</span></div>
+    <div class="adm-table-wrap">
+      <table class="adm-table">
+        <thead><tr>
+          <th>Module</th><th>Total</th><th>Waiting</th><th>Entered</th>
+          <th>Won</th><th>Lost</th><th>Expired</th><th>Ambiguous</th><th>Reliability</th>
+        </tr></thead>
+        <tbody id="tbl-module"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- By Timeframe -->
+  <div class="adm-card" style="margin-bottom:20px">
+    <div class="adm-card-header"><span class="adm-card-title">By Timeframe</span></div>
+    <div class="adm-table-wrap">
+      <table class="adm-table">
+        <thead><tr>
+          <th>Timeframe</th><th>Total</th><th>Waiting</th><th>Entered</th>
+          <th>Won</th><th>Lost</th><th>Expired</th><th>Ambiguous</th><th>Reliability</th>
+        </tr></thead>
+        <tbody id="tbl-tf"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Score Buckets -->
+  <div class="adm-card" style="margin-bottom:20px">
+    <div class="adm-card-header"><span class="adm-card-title">By Score Bucket</span></div>
+    <div class="adm-table-wrap">
+      <table class="adm-table">
+        <thead><tr>
+          <th>Score Bucket</th><th>Total</th><th>Won</th><th>Lost</th><th>Win Rate</th>
+        </tr></thead>
+        <tbody id="tbl-score"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Recent Signals -->
+  <div class="adm-card">
+    <div class="adm-card-header">
+      <span class="adm-card-title">Recent Signals</span>
+      <span id="int-sig-count" style="font-size:11px;color:var(--muted)"></span>
+    </div>
+    <div class="adm-table-wrap">
+      <table class="adm-table">
+        <thead><tr>
+          <th>Detected</th><th>Pair</th><th>TF</th><th>Module</th>
+          <th>Dir</th><th>Score</th><th>Status</th><th>Result</th>
+          <th>Reason</th><th>Zone</th>
+        </tr></thead>
+        <tbody id="tbl-signals"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- #int-content -->
+
+<script>
+(function(){
+
+function esc(v){ return v==null?'—':String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function fmtPct(v){ return v==null?'—':v.toFixed(2)+'%'; }
+
+function statusBadge(s){
+  if(!s)return'—';
+  const m={'WAITING_FOR_ENTRY':['st-waiting','WAITING'],
+            'ENTERED':['st-entered','ENTERED'],
+            'WON':['st-won','WON'],
+            'LOST':['st-lost','LOST'],
+            'EXPIRED':['st-expired','EXPIRED'],
+            'AMBIGUOUS':['st-ambiguous','AMBIG']};
+  const[cls,lbl]=m[s]||['st-waiting',s];
+  return`<span class="${cls}">${lbl}</span>`;
+}
+
+function reliabilityBadge(ok){
+  return ok?'<span class="badge-ok">OK</span>':'<span class="badge-low">LOW SAMPLE</span>';
+}
+
+function renderCards(t){
+  const defs=[
+    {label:'Total Signals',   val:t.total_signals,    color:'cyan'},
+    {label:'Waiting Entry',   val:t.waiting_for_entry, color:''},
+    {label:'Entered',         val:t.entered,           color:'blue'},
+    {label:'Won',             val:t.won,               color:'green'},
+    {label:'Lost',            val:t.lost,              color:''},
+    {label:'Expired',         val:t.expired,           color:''},
+    {label:'Ambiguous',       val:t.ambiguous,         color:'amber'},
+    {label:'Resolved Total',  val:t.resolved_total,    color:''},
+  ];
+  document.getElementById('int-cards').innerHTML=defs.map(d=>`
+    <div class="adm-stat-card${d.color?' '+d.color:''}">
+      <div class="adm-stat-label">${d.label}</div>
+      <div class="adm-stat-value${d.color?' '+d.color:''}">${d.val}</div>
+    </div>`).join('');
+}
+
+function renderWinRates(wr){
+  const defs=[
+    {label:'Win Rate (Resolved)',     val:wr.win_rate_resolved,       color:'green'},
+    {label:'Win Rate (WON/LOST)',     val:wr.win_rate_entered,        color:'green'},
+    {label:'Loss Rate (Resolved)',    val:wr.loss_rate_resolved,      color:'red'},
+    {label:'Ambiguous Rate',          val:wr.ambiguous_rate_resolved, color:'amber'},
+  ];
+  document.getElementById('int-wr').innerHTML=defs.map(d=>`
+    <div class="int-wr-card">
+      <div class="int-wr-label">${d.label}</div>
+      <div class="int-wr-value ${d.color}">${fmtPct(d.val)}</div>
+    </div>`).join('');
+}
+
+function reliRow(d,keyLabel,keyVal){
+  return`<tr>
+    <td style="font-family:'JetBrains Mono',monospace;color:var(--cyan)">${esc(d[keyLabel])}</td>
+    <td>${d.total}</td>
+    <td>${d.waiting_for_entry}</td>
+    <td>${d.entered}</td>
+    <td style="color:var(--green)">${d.won}</td>
+    <td style="color:var(--red)">${d.lost}</td>
+    <td>${d.expired}</td>
+    <td style="color:var(--amber)">${d.ambiguous}</td>
+    <td>${reliabilityBadge(d.sample_reliable)}</td>
+  </tr>`;
+}
+
+function renderModuleTable(rows){
+  const tb=document.getElementById('tbl-module');
+  tb.innerHTML=rows.length?rows.map(r=>reliRow(r,'module')).join('')
+    :'<tr><td colspan="9" class="adm-empty">No data</td></tr>';
+}
+
+function renderTfTable(rows){
+  const tb=document.getElementById('tbl-tf');
+  tb.innerHTML=rows.length?rows.map(r=>reliRow(r,'timeframe')).join('')
+    :'<tr><td colspan="9" class="adm-empty">No data</td></tr>';
+}
+
+function renderScoreTable(rows){
+  document.getElementById('tbl-score').innerHTML=rows.map(b=>`<tr>
+    <td style="font-family:'JetBrains Mono',monospace">${esc(b.bucket)}</td>
+    <td>${b.total}</td>
+    <td style="color:var(--green)">${b.won}</td>
+    <td style="color:var(--red)">${b.lost}</td>
+    <td>${fmtPct(b.win_rate)}</td>
+  </tr>`).join('');
+}
+
+function renderSignals(sigs,total){
+  document.getElementById('int-sig-count').textContent=`${sigs.length} shown / ${total} total`;
+  const fmt=dt=>dt?dt.replace('T',' ').slice(0,16):'—';
+  document.getElementById('tbl-signals').innerHTML=sigs.length?sigs.map(s=>`<tr>
+    <td style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace">${fmt(s.detected_at)}</td>
+    <td style="font-weight:600">${esc(s.pair)}</td>
+    <td style="font-family:'JetBrains Mono',monospace">${esc(s.timeframe)}</td>
+    <td><span class="badge cyan">${esc(s.module)}</span></td>
+    <td style="color:${s.direction==='bullish'?'var(--green)':'var(--red)'}">${esc(s.direction)}</td>
+    <td style="font-family:'JetBrains Mono',monospace">${s.score!=null?s.score:'—'}</td>
+    <td>${statusBadge(s.status)}</td>
+    <td>${s.result?`<span class="badge ${s.result==='WIN'?'green':s.result==='LOSS'?'red':'amber'}">${esc(s.result)}</span>`:'—'}</td>
+    <td style="font-size:11px;color:var(--muted)">${esc(s.result_reason)}</td>
+    <td style="font-size:11px;font-family:'JetBrains Mono',monospace;white-space:nowrap">
+      ${s.zone_high!=null?s.zone_high.toFixed(4):'—'} / ${s.zone_low!=null?s.zone_low.toFixed(4):'—'}
+    </td>
+  </tr>`).join(''):'<tr><td colspan="10" class="adm-empty">No signals</td></tr>';
+}
+
+function showError(msg){
+  const el=document.getElementById('int-error');
+  el.textContent='Error: '+msg;
+  el.style.display='block';
+}
+
+function fetchStats(){
+  document.getElementById('int-loading').style.display='block';
+  document.getElementById('int-content').style.display='none';
+  document.getElementById('int-error').style.display='none';
+
+  const src=document.getElementById('f-source').value;
+  const mod=document.getElementById('f-module').value;
+  const tf =document.getElementById('f-timeframe').value;
+
+  const params=new URLSearchParams({source:src,limit_recent:50});
+  if(mod) params.set('module',mod);
+  if(tf)  params.set('timeframe',tf);
+
+  fetch('/admin/intelligence/stats?'+params.toString())
+    .then(r=>r.json())
+    .then(data=>{
+      document.getElementById('int-loading').style.display='none';
+      if(!data.ok){showError(data.error||'Unknown error');return;}
+
+      renderCards(data.totals);
+      renderWinRates(data.win_rates);
+      renderModuleTable(data.by_module);
+      renderTfTable(data.by_timeframe);
+      renderScoreTable(data.by_score_bucket);
+      renderSignals(data.recent_signals, data.totals.total_signals);
+
+      document.getElementById('int-ts').textContent=
+        'Updated: '+new Date().toLocaleTimeString();
+      document.getElementById('int-content').style.display='block';
+    })
+    .catch(err=>{
+      document.getElementById('int-loading').style.display='none';
+      showError(err.message||'Network error');
+    });
+}
+
+fetchStats();
+
+})();
+</script>
+{% endblock %}

@@ -885,6 +885,13 @@ def intelligence_resolve_pending():
         return jsonify({"ok": False, "error": str(_rp_err)}), 500
 
 
+# ── Phase 5B — Intelligence admin page (read-only) ─────────────────────────
+@admin_bp.route("/intelligence")
+@admin_required
+def intelligence():
+    return render_template("admin/intelligence.html")
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Phase 5A — read-only intelligence stats (admin-only, never mutates DB)
 # GET /admin/intelligence/stats
