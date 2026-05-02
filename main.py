@@ -24,6 +24,8 @@ from flask import Flask, jsonify, redirect, render_template, request, session, u
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "zyni-fallback-secret")
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', '')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 @app.after_request
 def no_cache(r):
@@ -32,17 +34,215 @@ def no_cache(r):
     r.headers["Expires"] = "0"
     return r
 
+from flask_login import LoginManager
+from models import (db, User as _DBUser, GlobalSetting as _GlobalSetting,
+                    LoginHistory as _LoginHistory)
+from admin import admin_bp
+from permissions import get_user_permissions, consume_tokens, check_tokens
+
+db.init_app(app)
+_login_manager = LoginManager()
+_login_manager.init_app(app)
+_login_manager.login_view = "admin.login"
+
+@_login_manager.user_loader
+def _load_user(user_id):
+    return _DBUser.query.get(int(user_id))
+
+app.register_blueprint(admin_bp)
+
+@app.template_filter("time_ago")
+def _time_ago(dt):
+    if not dt:
+        return "—"
+    try:
+        diff = int((datetime.now(timezone.utc) - dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else datetime.now(timezone.utc) - dt).total_seconds())
+        if diff < 60: return "just now"
+        if diff < 3600: return f"{diff//60}m ago"
+        if diff < 86400: return f"{diff//3600}h ago"
+        return f"{diff//86400}d ago"
+    except Exception:
+        return "—"
+
+try:
+    with app.app_context():
+        db.create_all()
+except Exception as _db_err:
+    print(f"[DB] Could not create tables: {_db_err}")
+
+# ── Intelligence schema migration — idempotent, safe on every deploy ──────────
+# db.create_all() creates new tables but does NOT alter existing PostgreSQL
+# tables. This patch adds any columns/indexes that were added after the initial
+# deploy. All statements use IF NOT EXISTS — safe to run repeatedly.
+try:
+    from sqlalchemy import text as _sa_text
+    with app.app_context():
+        try:
+            _migration_stmts = [
+                # New columns on signal_events
+                "ALTER TABLE signal_events ADD COLUMN IF NOT EXISTS setup_type VARCHAR(30)",
+                "ALTER TABLE signal_events ADD COLUMN IF NOT EXISTS raw_setup VARCHAR(50)",
+                "ALTER TABLE signal_events ADD COLUMN IF NOT EXISTS raw_meta_json TEXT",
+                # Indexes — non-unique
+                "CREATE INDEX IF NOT EXISTS ix_signal_events_pair        ON signal_events (pair)",
+                "CREATE INDEX IF NOT EXISTS ix_signal_events_module      ON signal_events (module)",
+                "CREATE INDEX IF NOT EXISTS ix_signal_events_timeframe   ON signal_events (timeframe)",
+                "CREATE INDEX IF NOT EXISTS ix_signal_events_status      ON signal_events (status)",
+                "CREATE INDEX IF NOT EXISTS ix_signal_events_detected_at ON signal_events (detected_at)",
+                # Unique index for signal_id (already enforced by unique=True on column,
+                # but explicit name makes it idempotent and inspectable)
+                "CREATE UNIQUE INDEX IF NOT EXISTS ix_signal_events_signal_id_unique ON signal_events (signal_id)",
+            ]
+            for _stmt in _migration_stmts:
+                db.session.execute(_sa_text(_stmt))
+            db.session.commit()
+
+            # Verify the three new columns are present
+            _verify_rows = db.session.execute(_sa_text(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name = 'signal_events' "
+                "  AND column_name IN ('setup_type', 'raw_setup', 'raw_meta_json')"
+            )).fetchall()
+            _found_cols  = {r[0] for r in _verify_rows}
+            _missing_cols = {"setup_type", "raw_setup", "raw_meta_json"} - _found_cols
+            if _missing_cols:
+                print(f"[Intelligence Migration] WARNING — columns still missing after patch: {_missing_cols}")
+            else:
+                print("[Intelligence Migration] schema patch applied — all columns verified OK")
+
+        except Exception as _migration_inner_err:
+            db.session.rollback()
+            print(f"[Intelligence Migration] skipped/error: {_migration_inner_err}")
+except Exception as _migration_outer_err:
+    print(f"[Intelligence Migration] skipped/error: {_migration_outer_err}")
+
+# ── Auto Resolver background runner (Phase 6B — dry-run only) ────────────────
+try:
+    from auto_resolver_runner import start_auto_resolver_runner
+    start_auto_resolver_runner(app)
+except Exception as _ar_start_err:
+    print(f"[AutoResolver] failed to start: {_ar_start_err}")
+
+# ── IP geo cache ────────────────────────────────────────────────────
+_ip_geo: dict = {}   # {ip: (ts, {country, city})}
+
+def _geo_lookup(ip: str) -> dict:
+    """Return {country, city} for an IP. Cached 24h."""
+    if not ip or ip in ("unknown", "127.0.0.1") or ip.startswith("192.168") or ip.startswith("10."):
+        return {"country": "", "city": ""}
+    cached_ts, cached_geo = _ip_geo.get(ip, (0, None))
+    if cached_geo and (time.time() - cached_ts) < 86400:
+        return cached_geo
+    try:
+        r = req.get(f"http://ip-api.com/json/{ip}?fields=country,city", timeout=4)
+        if r.status_code == 200:
+            d = r.json()
+            geo = {"country": d.get("country", ""), "city": d.get("city", "")}
+        else:
+            geo = {"country": "", "city": ""}
+    except Exception:
+        geo = {"country": "", "city": ""}
+    _ip_geo[ip] = (time.time(), geo)
+    return geo
+
+def _parse_ua(ua: str) -> dict:
+    """Parse User-Agent string into device/browser/os."""
+    ua_l = (ua or "").lower()
+    if "mobile" in ua_l or "android" in ua_l or "iphone" in ua_l:
+        device = "mobile"
+    elif "tablet" in ua_l or "ipad" in ua_l:
+        device = "tablet"
+    else:
+        device = "desktop"
+
+    if "edg" in ua_l:      browser = "Edge"
+    elif "chrome" in ua_l: browser = "Chrome"
+    elif "firefox" in ua_l:browser = "Firefox"
+    elif "safari" in ua_l: browser = "Safari"
+    else:                  browser = "Unknown"
+
+    if "android" in ua_l:    os_ = "Android"
+    elif "iphone" in ua_l or "ipad" in ua_l: os_ = "iOS"
+    elif "windows" in ua_l:  os_ = "Windows"
+    elif "mac" in ua_l:      os_ = "macOS"
+    elif "linux" in ua_l:    os_ = "Linux"
+    else:                    os_ = "Unknown"
+
+    return {"device_type": device, "browser": browser, "os": os_}
+
+# ── Maintenance mode ────────────────────────────────────────────────
+_SKIP_MAINTENANCE_PATHS = ("/admin", "/static", "/api/", "/login",
+                           "/logout", "/guest", "/favicon")
+
+@app.before_request
+def _maintenance_check():
+    path = request.path
+    if any(path.startswith(p) for p in _SKIP_MAINTENANCE_PATHS):
+        return None
+    if session.get("is_admin"):
+        return None
+    try:
+        s = _GlobalSetting.query.filter_by(key="maintenance_mode").first()
+        if s and s.value == "true":
+            msg_s = _GlobalSetting.query.filter_by(key="maintenance_message").first()
+            msg   = msg_s.value if msg_s else "We're upgrading. Back soon!"
+            return render_template("maintenance.html", message=msg)
+    except Exception:
+        pass
+    return None
+
 APP_PASSWORD = os.environ.get("APP_PASSWORD", "Ulta8900")
 
 # ============================================================
-# USERNAME SYSTEM
-# Set USERS env var on Koyeb as comma-separated list
-# Example: USERS = zyni,abdul manan,friend1
-# All users share APP_PASSWORD
-# Each gets their own server-side watchlist
+# USERNAME SYSTEM — per-user passwords
+# USERS env var: comma-separated list of usernames
+# Individual passwords: USER_<NAME>_PASS env var per user
+# Falls back to APP_PASSWORD if individual pass not set
 # ============================================================
-_raw_users = os.environ.get("USERS", "zyni,abdul manan")
-ALLOWED_USERS: List[str] = [u.strip().lower() for u in _raw_users.split(",") if u.strip()]
+def _build_users_db() -> Dict[str, str]:
+    raw = os.environ.get("USERS", "zyni,abdul manan")
+    db: Dict[str, str] = {}
+    for u in raw.split(","):
+        u = u.strip().lower()
+        if u:
+            key = "USER_" + u.replace(" ", "_").upper() + "_PASS"
+            db[u] = os.environ.get(key, APP_PASSWORD)
+    return db
+
+_USERS_DB: Dict[str, str] = _build_users_db()
+ALLOWED_USERS = _USERS_DB  # alias kept for internal references
+
+# ── Admin credentials (separate from regular users) ──
+ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "AdminZyNi2024!")
+
+# ── Active session tracking {username: {ip, ua, login_time, sid, is_admin}} ──
+_active_sessions: Dict[str, dict] = {}
+_sessions_lock = threading.Lock()
+_force_logout_users: set = set()
+
+# ── Login audit log (in-memory, max 500 entries) ──
+LOGIN_AUDIT_LOG: deque = deque(maxlen=500)
+
+# ── Feature tab toggles (admin-controlled) ──
+_tab_controls: Dict[str, bool] = {
+    "scan": True, "compressed": True, "trending": True,
+    "ath_atl": True, "bias": True, "live_monitor": True
+}
+
+# ── Guest access system ──
+_guest_controls: Dict = {
+    "enabled": True,
+    "tabs": {"scan": True, "compressed": False, "trending": True, "ath_atl": False, "bias": False},
+    "max_scans_per_session": 5,
+    "max_pairs": 20,
+    "session_label": "Guest",
+}
+_guest_sessions: Dict[str, dict] = {}
+_guest_lock = threading.Lock()
+
+# ── App start time for uptime tracking ──
+_app_start_time = datetime.now(timezone.utc)
 
 # ── Server-side watchlist storage ──
 # Stored in /tmp/wl_{username}.json
@@ -1138,25 +1338,42 @@ def hp_ticker():
 
 @app.route('/api/homepage/gainers')
 def hp_gainers():
-    """Top gainers and losers from Binance — cached 60 seconds"""
+    """Top gainers and losers — Futures primary, Spot fallback — cached 60s"""
     def fetch():
-        import urllib.request
-        url = 'https://api.binance.com/api/v3/ticker/24hr'
-        req = urllib.request.Request(url, headers={'User-Agent':'Mozilla/5.0'})
-        with urllib.request.urlopen(req, timeout=10) as r:
-            data = json.loads(r.read().decode())
-        # Filter USDT pairs only, exclude stables
         stables = {'USDC','BUSD','TUSD','USDP','DAI','FDUSD'}
+        data = None
+        # Primary: Binance Futures
+        try:
+            r = req.get('https://fapi.binance.com/fapi/v1/ticker/24hr',
+                        headers={'User-Agent': 'Mozilla/5.0'}, timeout=8)
+            r.raise_for_status()
+            data = r.json()
+            print(f"[HP Gainers] Futures OK — {len(data)} symbols")
+        except Exception as e:
+            print(f"[HP Gainers] Futures failed: {e}")
+            print(traceback.format_exc())
+        # Fallback: Binance Spot
+        if not data:
+            try:
+                r = req.get('https://api.binance.com/api/v3/ticker/24hr',
+                            headers={'User-Agent': 'Mozilla/5.0'}, timeout=8)
+                r.raise_for_status()
+                data = r.json()
+                print(f"[HP Gainers] Spot fallback OK — {len(data)} symbols")
+            except Exception as e:
+                print(f"[HP Gainers] Spot fallback failed: {e}")
+                print(traceback.format_exc())
+                return None
         pairs = [
             {
-                'symbol': d['symbol'].replace('USDT',''),
-                'price': float(d['lastPrice']),
+                'symbol': d['symbol'].replace('USDT', ''),
+                'price':  float(d['lastPrice']),
                 'change': float(d['priceChangePercent']),
                 'volume': float(d['quoteVolume'])
             }
             for d in data
             if d['symbol'].endswith('USDT')
-            and d['symbol'].replace('USDT','') not in stables
+            and d['symbol'].replace('USDT', '') not in stables
             and float(d['quoteVolume']) > 1_000_000
         ]
         gainers = sorted(pairs, key=lambda x: x['change'], reverse=True)[:5]
@@ -1164,65 +1381,88 @@ def hp_gainers():
         return {'gainers': gainers, 'losers': losers}
     result = _hp_cached('gainers', 60, fetch)
     if result is None:
-        return jsonify({'gainers':[], 'losers':[]}), 200
+        return jsonify({'gainers': [], 'losers': []}), 200
     return jsonify(result)
 
 @app.route('/api/homepage/volume')
 def hp_volume():
     """24H exchange volumes — cached 5 minutes"""
     def fetch():
-        import urllib.request
         volumes = []
+        hdrs = {'User-Agent': 'Mozilla/5.0'}
 
-        # Binance
+        # Binance Futures (most reliable — higher volume than spot)
         try:
-            url = 'https://api.binance.com/api/v3/ticker/24hr'
-            req = urllib.request.Request(url, headers={'User-Agent':'Mozilla/5.0'})
-            with urllib.request.urlopen(req, timeout=8) as r:
-                data = json.loads(r.read().decode())
+            r = req.get('https://fapi.binance.com/fapi/v1/ticker/24hr', headers=hdrs, timeout=8)
+            r.raise_for_status()
+            data = r.json()
             total = sum(float(d['quoteVolume']) for d in data if d['symbol'].endswith('USDT'))
-            volumes.append({'exchange':'Binance','volume':round(total/1e9,1),'color':'#f59e0b'})
-        except: volumes.append({'exchange':'Binance','volume':0,'color':'#f59e0b'})
+            volumes.append({'exchange': 'Binance', 'volume': round(total / 1e9, 1), 'color': '#f59e0b'})
+            print(f"[HP Volume] Binance Futures: {round(total/1e9,1)}B")
+        except Exception as e:
+            print(f"[HP Volume Error] Binance: {e}")
+            print(traceback.format_exc())
+            volumes.append({'exchange': 'Binance', 'volume': 0, 'color': '#f59e0b'})
 
-        # Bybit
+        # Bybit Linear (perpetual)
         try:
-            url = 'https://api.bybit.com/v5/market/tickers?category=spot'
-            req = urllib.request.Request(url, headers={'User-Agent':'Mozilla/5.0'})
-            with urllib.request.urlopen(req, timeout=8) as r:
-                data = json.loads(r.read().decode())
-            total = sum(float(d.get('turnover24h',0)) for d in data.get('result',{}).get('list',[]) if d.get('symbol','').endswith('USDT'))
-            volumes.append({'exchange':'Bybit','volume':round(total/1e9,1),'color':'#22d3ee'})
-        except: volumes.append({'exchange':'Bybit','volume':0,'color':'#22d3ee'})
+            r = req.get('https://api.bybit.com/v5/market/tickers?category=linear', headers=hdrs, timeout=8)
+            r.raise_for_status()
+            data = r.json()
+            total = sum(
+                float(d.get('turnover24h', 0))
+                for d in data.get('result', {}).get('list', [])
+                if d.get('symbol', '').endswith('USDT')
+            )
+            volumes.append({'exchange': 'Bybit', 'volume': round(total / 1e9, 1), 'color': '#22d3ee'})
+            print(f"[HP Volume] Bybit Linear: {round(total/1e9,1)}B")
+        except Exception as e:
+            print(f"[HP Volume Error] Bybit: {e}")
+            print(traceback.format_exc())
+            volumes.append({'exchange': 'Bybit', 'volume': 0, 'color': '#22d3ee'})
 
-        # OKX
+        # OKX Swap — vol24h (base) * last (price) = USD volume per symbol
         try:
-            url = 'https://www.okx.com/api/v5/market/tickers?instType=SPOT'
-            req = urllib.request.Request(url, headers={'User-Agent':'Mozilla/5.0'})
-            with urllib.request.urlopen(req, timeout=8) as r:
-                data = json.loads(r.read().decode())
-            total = sum(float(d.get('volCcy24h',0)) for d in data.get('data',[]) if d.get('instId','').endswith('USDT'))
-            volumes.append({'exchange':'OKX','volume':round(total/1e9,1),'color':'#22c55e'})
-        except: volumes.append({'exchange':'OKX','volume':0,'color':'#22c55e'})
+            r = req.get('https://www.okx.com/api/v5/market/tickers?instType=SWAP', headers=hdrs, timeout=8)
+            r.raise_for_status()
+            data = r.json()
+            total = sum(
+                float(d.get('vol24h', 0)) * float(d.get('last', 0))
+                for d in data.get('data', [])
+                if d.get('instId', '').endswith('USDT-SWAP')
+            )
+            volumes.append({'exchange': 'OKX', 'volume': round(total / 1e9, 1), 'color': '#22c55e'})
+            print(f"[HP Volume] OKX Swap: {round(total/1e9,1)}B")
+        except Exception as e:
+            print(f"[HP Volume Error] OKX: {e}")
+            print(traceback.format_exc())
+            volumes.append({'exchange': 'OKX', 'volume': 0, 'color': '#22c55e'})
 
         # MEXC
         try:
-            url = 'https://api.mexc.com/api/v3/ticker/24hr'
-            req = urllib.request.Request(url, headers={'User-Agent':'Mozilla/5.0'})
-            with urllib.request.urlopen(req, timeout=8) as r:
-                data = json.loads(r.read().decode())
-            total = sum(float(d.get('quoteVolume',0)) for d in data if d.get('symbol','').endswith('USDT'))
-            volumes.append({'exchange':'MEXC','volume':round(total/1e9,1),'color':'#f97316'})
-        except: volumes.append({'exchange':'MEXC','volume':0,'color':'#f97316'})
+            r = req.get('https://api.mexc.com/api/v3/ticker/24hr', headers=hdrs, timeout=8)
+            r.raise_for_status()
+            data = r.json()
+            total = sum(float(d.get('quoteVolume', 0)) for d in data if d.get('symbol', '').endswith('USDT'))
+            volumes.append({'exchange': 'MEXC', 'volume': round(total / 1e9, 1), 'color': '#f97316'})
+            print(f"[HP Volume] MEXC: {round(total/1e9,1)}B")
+        except Exception as e:
+            print(f"[HP Volume Error] MEXC: {e}")
+            print(traceback.format_exc())
+            volumes.append({'exchange': 'MEXC', 'volume': 0, 'color': '#f97316'})
 
-        # Bitget (public endpoint)
+        # Bitget Futures (umcbl = USDT margined perpetuals)
         try:
-            url = 'https://api.bitget.com/api/spot/v1/market/tickers'
-            req = urllib.request.Request(url, headers={'User-Agent':'Mozilla/5.0'})
-            with urllib.request.urlopen(req, timeout=8) as r:
-                data = json.loads(r.read().decode())
-            total = sum(float(d.get('usdtVol',0)) for d in data.get('data',[]))
-            volumes.append({'exchange':'Bitget','volume':round(total/1e9,1),'color':'#a78bfa'})
-        except: volumes.append({'exchange':'Bitget','volume':0,'color':'#a78bfa'})
+            r = req.get('https://api.bitget.com/api/mix/v1/market/tickers?productType=umcbl', headers=hdrs, timeout=8)
+            r.raise_for_status()
+            data = r.json()
+            total = sum(float(d.get('usdtVolume', 0)) for d in data.get('data', []))
+            volumes.append({'exchange': 'Bitget', 'volume': round(total / 1e9, 1), 'color': '#a78bfa'})
+            print(f"[HP Volume] Bitget: {round(total/1e9,1)}B")
+        except Exception as e:
+            print(f"[HP Volume Error] Bitget: {e}")
+            print(traceback.format_exc())
+            volumes.append({'exchange': 'Bitget', 'volume': 0, 'color': '#a78bfa'})
 
         return volumes
 
@@ -4146,58 +4386,142 @@ def login_required(f):
     def decorated(*args, **kwargs):
         if not session.get("logged_in"):
             return redirect(url_for("index"))
+        uname = session.get("username", "").lower()
+        if uname in _force_logout_users:
+            _force_logout_users.discard(uname)
+            with _sessions_lock:
+                _active_sessions.pop(uname, None)
+            session.clear()
+            return redirect(url_for("index"))
         return f(*args, **kwargs)
     return decorated
 
 
+def admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get("is_admin"):
+            return redirect(url_for("index"))
+        return f(*args, **kwargs)
+    return decorated
+
+
+def _guest_tab_check(tab_name: str):
+    """Returns error tuple if guest is blocked, else None. Also increments scan count."""
+    if not session.get("is_guest"):
+        return None
+    if not _guest_controls.get("enabled", True):
+        return jsonify({"error": "Guest access is disabled."}), 403
+    if not _guest_controls["tabs"].get(tab_name, False):
+        return jsonify({"error": f"The '{tab_name}' tab is not available for guests."}), 403
+    guest_id = session.get("guest_id", "")
+    max_scans = int(_guest_controls.get("max_scans_per_session", 5))
+    with _guest_lock:
+        gs = _guest_sessions.get(guest_id, {})
+        if gs.get("scan_count", 0) >= max_scans:
+            return jsonify({"error": f"Guest scan limit reached ({max_scans}/session). Sign in for unlimited access."}), 429
+        gs["scan_count"] = gs.get("scan_count", 0) + 1
+        tabs = gs.get("tabs_visited", [])
+        if tab_name not in tabs:
+            tabs.append(tab_name)
+        gs["tabs_visited"] = tabs
+        _guest_sessions[guest_id] = gs
+    return None
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    # GET request — always redirect to homepage
-    # Login happens via drop box on homepage
     if request.method == "GET":
         return redirect(url_for("index"))
 
-    error = None
-    if request.method == "POST":
-        username = request.form.get("username", "").strip().lower()
-        pwd      = request.form.get("password", "")
+    username = request.form.get("username", "").strip().lower()
+    pwd      = request.form.get("password", "")
+    ip       = request.headers.get("X-Forwarded-For", request.remote_addr or "unknown").split(",")[0].strip()
+    ua       = request.headers.get("User-Agent", "unknown")
+    now_utc  = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    error    = None
 
-        if not username:
-            error = "Please enter your username."
-        elif username not in ALLOWED_USERS:
+    # ── Try DB login first ──────────────────────────────────────────
+    db_user = None
+    db_error = None
+    if not username:
+        db_error = "Please enter your username."
+    else:
+        try:
+            db_user = _DBUser.query.filter_by(username=username).first()
+            if db_user:
+                if not db_user.check_password(pwd):
+                    db_error = "Incorrect password. Try again."
+                elif db_user.status == "paused":
+                    db_error = "Your account has been paused. Contact admin."
+                elif db_user.status != "active":
+                    db_error = f"Account is {db_user.status}. Contact admin."
+                # success — db_error stays None
+            # else: user not in DB, fall through to legacy
+        except Exception as _dbe:
+            print(f"[LOGIN-DB] Error: {_dbe}")
+            db_user = None  # DB unavailable — fall to legacy
+
+    # ── Legacy fallback if DB user not found ──────────────────────
+    if not username:
+        error = db_error
+    elif db_user is not None:
+        # DB user found — honour DB result
+        error = db_error
+    else:
+        # Not in DB — try in-memory legacy list
+        if username not in _USERS_DB:
             error = "Username not recognised."
-        elif pwd != APP_PASSWORD:
+        elif pwd != _USERS_DB[username]:
             error = "Incorrect password. Try again."
-        else:
-            session["logged_in"] = True
-            session["username"]  = username
+        # else: legacy success, error stays None
 
-            # ── Restore server-side watchlist for this user ──
-            saved_pairs = load_user_watchlist(username)
-            with _wl_lock:
-                _wl_pairs[:] = saved_pairs
-            if saved_pairs:
-                _ensure_wl_thread()
-
-            # ── Login notification email ──
+    if error is None and username:
+        session["logged_in"] = True
+        session["username"]  = username
+        # persist DB fields if user found
+        if db_user is not None:
             try:
-                ip      = request.headers.get("X-Forwarded-For", request.remote_addr or "unknown")
-                ip      = ip.split(",")[0].strip()
-                ua      = request.headers.get("User-Agent", "unknown")
-                now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
-                geo     = "unknown"
-                try:
-                    gr = req.get(f"https://ipapi.co/{ip}/json/", timeout=4)
-                    if gr.status_code == 200:
-                        gd      = gr.json()
-                        city    = gd.get("city", "")
-                        country = gd.get("country_name", "")
-                        geo     = f"{city}, {country}" if city else country
-                except Exception:
-                    pass
+                db_user.last_login_at = datetime.now(timezone.utc)
+                db_user.last_login_ip = ip
+                from models import db as _db
+                _db.session.commit()
+            except Exception:
+                pass
+        sid = os.urandom(16).hex()
+        session["sid"] = sid
 
-                subject = f"🔐 ZyNi Screener — {username.title()} logged in"
-                body = f"""
+        saved_pairs = load_user_watchlist(username)
+        with _wl_lock:
+            _wl_pairs[:] = saved_pairs
+        if saved_pairs:
+            _ensure_wl_thread()
+
+        geo = "unknown"
+        try:
+            gr = req.get(f"https://ipapi.co/{ip}/json/", timeout=4)
+            if gr.status_code == 200:
+                gd      = gr.json()
+                city    = gd.get("city", "")
+                country = gd.get("country_name", "")
+                geo     = f"{city}, {country}" if city else country
+        except Exception:
+            pass
+
+        with _sessions_lock:
+            _active_sessions[username] = {
+                "ip": ip, "ua": ua,
+                "login_time": datetime.now(timezone.utc).isoformat(),
+                "sid": sid, "is_admin": False
+            }
+        LOGIN_AUDIT_LOG.appendleft({
+            "username": username, "time": now_utc,
+            "ip": ip, "geo": geo, "ua": ua, "success": True
+        })
+
+        try:
+            subject = f"🔐 ZyNi Screener — {username.title()} logged in"
+            body = f"""
 <html><body style="font-family:monospace;background:#0a0e17;color:#e2e8f0;padding:24px">
 <div style="max-width:520px;margin:0 auto;background:#0d1525;border:1px solid #1e3040;border-top:3px solid #22d3ee;border-radius:10px;padding:24px">
   <h2 style="color:#22d3ee;margin:0 0 16px">🔐 New Login — ZyNi SMC Screener</h2>
@@ -4214,18 +4538,263 @@ def login():
   </div>
 </div>
 </body></html>"""
-                threading.Thread(target=send_email_alert, args=(subject, body), daemon=True).start()
-            except Exception as e:
-                print(f"[LOGIN-NOTIFY] Error: {e}")
+            threading.Thread(target=send_email_alert, args=(subject, body), daemon=True).start()
+        except Exception as e:
+            print(f"[LOGIN-NOTIFY] Error: {e}")
 
-            return redirect(url_for("index"))
+        # Store user_id in session if DB user exists
+        if db_user is not None:
+            session["user_id"] = db_user.id
 
+        # Record login history asynchronously
+        def _record_login(uid, _ip, _ua):
+            try:
+                with app.app_context():
+                    geo  = _geo_lookup(_ip)
+                    ua_p = _parse_ua(_ua)
+                    lh   = _LoginHistory(
+                        user_id    = uid,
+                        ip_address = _ip,
+                        user_agent = _ua,
+                        country    = geo.get("country", ""),
+                        city       = geo.get("city", ""),
+                        **ua_p,
+                    )
+                    db.session.add(lh)
+                    db.session.commit()
+            except Exception as _e:
+                print(f"[LOGIN-HIST] {_e}")
+        if db_user is not None:
+            threading.Thread(target=_record_login, args=(db_user.id, ip, ua), daemon=True).start()
+
+        return redirect(url_for("index"))
+
+    LOGIN_AUDIT_LOG.appendleft({
+        "username": username or "(empty)", "time": now_utc,
+        "ip": ip, "geo": "", "ua": ua, "success": False
+    })
     return render_template("login.html", error=error)
 
 
 @app.route("/logout")
 def logout():
+    username = session.get("username", "").lower()
+    # Update session duration in login history
+    uid = session.get("user_id")
+    if uid:
+        def _end_session(_uid):
+            try:
+                with app.app_context():
+                    from models import LoginHistory as _LH
+                    lh = _LH.query.filter_by(user_id=_uid).order_by(_LH.logged_in_at.desc()).first()
+                    if lh and lh.session_duration is None:
+                        mins = int((datetime.now(timezone.utc) - lh.logged_in_at.replace(tzinfo=timezone.utc)).total_seconds() / 60)
+                        lh.session_duration = mins
+                        db.session.commit()
+            except Exception:
+                pass
+        threading.Thread(target=_end_session, args=(uid,), daemon=True).start()
+    with _sessions_lock:
+        _active_sessions.pop(username, None)
     session.clear()
+    return redirect(url_for("index"))
+
+
+
+@app.route("/api/admin/users")
+@admin_required
+def api_admin_users():
+    users = [{"username": u, "default_pass": (p == APP_PASSWORD)} for u, p in _USERS_DB.items()]
+    return jsonify({"users": users})
+
+
+@app.route("/api/admin/users/add", methods=["POST"])
+@admin_required
+def api_admin_users_add():
+    data  = request.get_json(force=True) or {}
+    uname = data.get("username", "").strip().lower()
+    pwd   = data.get("password", "").strip()
+    if not uname:
+        return jsonify({"error": "Username required"}), 400
+    if not pwd:
+        return jsonify({"error": "Password required"}), 400
+    if uname in _USERS_DB:
+        return jsonify({"error": "User already exists"}), 409
+    _USERS_DB[uname] = pwd
+    return jsonify({"ok": True, "users": [{"username": u, "default_pass": (p == APP_PASSWORD)} for u, p in _USERS_DB.items()]})
+
+
+@app.route("/api/admin/users/remove", methods=["POST"])
+@admin_required
+def api_admin_users_remove():
+    data  = request.get_json(force=True) or {}
+    uname = data.get("username", "").strip().lower()
+    if uname not in _USERS_DB:
+        return jsonify({"error": "User not found"}), 404
+    del _USERS_DB[uname]
+    _force_logout_users.add(uname)
+    with _sessions_lock:
+        _active_sessions.pop(uname, None)
+    return jsonify({"ok": True, "users": [{"username": u, "default_pass": (p == APP_PASSWORD)} for u, p in _USERS_DB.items()]})
+
+
+@app.route("/api/admin/users/password", methods=["POST"])
+@admin_required
+def api_admin_users_password():
+    data  = request.get_json(force=True) or {}
+    uname = data.get("username", "").strip().lower()
+    pwd   = data.get("password", "").strip()
+    if uname not in _USERS_DB:
+        return jsonify({"error": "User not found"}), 404
+    if not pwd:
+        return jsonify({"error": "Password required"}), 400
+    _USERS_DB[uname] = pwd
+    return jsonify({"ok": True})
+
+
+@app.route("/api/admin/users/<username>/detail")
+@admin_required
+def api_admin_user_detail(username):
+    username = username.lower()
+    if username not in _USERS_DB:
+        return jsonify({"error": "User not found"}), 404
+    user_logs = [e for e in LOGIN_AUDIT_LOG if e.get("username") == username]
+    with _sessions_lock:
+        current = _active_sessions.get(username)
+    return jsonify({
+        "username": username,
+        "is_online": username in _active_sessions,
+        "current_session": current,
+        "total_logins": sum(1 for e in user_logs if e.get("success")),
+        "failed_attempts": sum(1 for e in user_logs if not e.get("success")),
+        "last_login": user_logs[0] if user_logs else None,
+        "history": user_logs[:10],
+    })
+
+
+@app.route("/api/admin/sessions")
+@admin_required
+def api_admin_sessions():
+    with _sessions_lock:
+        sessions_list = [{"username": k, **v} for k, v in _active_sessions.items()]
+    return jsonify({"sessions": sessions_list})
+
+
+@app.route("/api/admin/sessions/logout", methods=["POST"])
+@admin_required
+def api_admin_sessions_logout():
+    data  = request.get_json(force=True) or {}
+    uname = data.get("username", "").strip().lower()
+    _force_logout_users.add(uname)
+    with _sessions_lock:
+        _active_sessions.pop(uname, None)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/admin/logs")
+@admin_required
+def api_admin_logs():
+    limit = min(int(request.args.get("limit", 100)), 500)
+    return jsonify({"logs": list(LOGIN_AUDIT_LOG)[:limit]})
+
+
+@app.route("/api/admin/stats")
+@admin_required
+def api_admin_stats():
+    uptime_secs = int((datetime.now(timezone.utc) - _app_start_time).total_seconds())
+    h, rem      = divmod(uptime_secs, 3600)
+    m, s        = divmod(rem, 60)
+    mem_mb = 0
+    try:
+        with open("/proc/self/status") as f:
+            for line in f:
+                if line.startswith("VmRSS:"):
+                    mem_mb = int(line.split()[1]) // 1024
+                    break
+    except Exception:
+        pass
+    with _sessions_lock:
+        active_count = len(_active_sessions)
+    return jsonify({
+        "uptime": f"{h}h {m}m {s}s",
+        "memory_mb": mem_mb,
+        "total_users": len(_USERS_DB),
+        "active_sessions": active_count,
+        "total_logins": sum(1 for e in LOGIN_AUDIT_LOG if e.get("success")),
+        "failed_attempts": sum(1 for e in LOGIN_AUDIT_LOG if not e.get("success")),
+        "audit_log_size": len(LOGIN_AUDIT_LOG),
+    })
+
+
+@app.route("/api/admin/controls/tabs")
+@admin_required
+def api_admin_tab_status():
+    return jsonify({"tab_controls": _tab_controls})
+
+
+@app.route("/api/admin/controls/tab", methods=["POST"])
+@admin_required
+def api_admin_tab_toggle():
+    data    = request.get_json(force=True) or {}
+    tab     = data.get("tab", "")
+    enabled = bool(data.get("enabled", True))
+    if tab not in _tab_controls:
+        return jsonify({"error": "Unknown tab"}), 400
+    _tab_controls[tab] = enabled
+    return jsonify({"ok": True, "tab_controls": _tab_controls})
+
+
+@app.route("/api/admin/guest/controls", methods=["GET", "POST"])
+@admin_required
+def api_admin_guest_controls():
+    if request.method == "GET":
+        return jsonify({"guest_controls": _guest_controls})
+    data = request.get_json(force=True) or {}
+    if "enabled" in data:
+        _guest_controls["enabled"] = bool(data["enabled"])
+    if "max_scans_per_session" in data:
+        _guest_controls["max_scans_per_session"] = max(1, int(data["max_scans_per_session"]))
+    if "max_pairs" in data:
+        _guest_controls["max_pairs"] = max(1, int(data["max_pairs"]))
+    if "tabs" in data and isinstance(data["tabs"], dict):
+        for tab, val in data["tabs"].items():
+            if tab in _guest_controls["tabs"]:
+                _guest_controls["tabs"][tab] = bool(val)
+    return jsonify({"ok": True, "guest_controls": _guest_controls})
+
+
+@app.route("/api/admin/guest/sessions")
+@admin_required
+def api_admin_guest_sessions():
+    with _guest_lock:
+        sessions = [{"guest_id": k, **v} for k, v in _guest_sessions.items()]
+    return jsonify({"sessions": sessions, "total": len(sessions)})
+
+
+# ── Guest login ──
+@app.route("/guest/login", methods=["POST"])
+def guest_login():
+    if not _guest_controls.get("enabled", True):
+        return jsonify({"error": "Guest access is currently disabled."}), 403
+    guest_id = os.urandom(12).hex()
+    display  = f"guest_{guest_id[:6]}"
+    session["logged_in"]  = True
+    session["is_guest"]   = True
+    session["guest_id"]   = guest_id
+    session["username"]   = display
+    ip      = request.headers.get("X-Forwarded-For", request.remote_addr or "unknown").split(",")[0].strip()
+    ua      = request.headers.get("User-Agent", "unknown")
+    now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    with _guest_lock:
+        _guest_sessions[guest_id] = {
+            "ip": ip, "ua": ua,
+            "login_time": datetime.now(timezone.utc).isoformat(),
+            "scan_count": 0, "tabs_visited": [],
+        }
+    LOGIN_AUDIT_LOG.appendleft({
+        "username": f"GUEST-{guest_id[:6]}", "time": now_utc,
+        "ip": ip, "geo": "", "ua": ua, "success": True
+    })
     return redirect(url_for("index"))
 
 
@@ -4625,6 +5194,9 @@ def _scan_pair_multitf(symbol: str, market: str = "perpetual", wl_config: Option
 @app.route("/api/watchlist/refresh", methods=["POST"])
 @login_required
 def api_watchlist_refresh():
+    _tok_user, _tok_uid = _check_and_get_token_user()
+    if _tok_user == "limit":
+        return jsonify({"error": "daily_limit_reached", "message": "Daily scan tokens exhausted. Resets at midnight UTC."}), 429
     data      = request.get_json(force=True) or {}
     pairs     = [str(p).strip().upper() for p in data.get("pairs", []) if str(p).strip()]
     pairs     = [p for p in pairs if p.endswith("USDT")][:30]
@@ -4649,7 +5221,9 @@ def api_watchlist_refresh():
         key=lambda x: x.get("tfs", {}).get("1h", {}).get("score", 0),
         reverse=True
     )
-
+    if _tok_uid:
+        try: consume_tokens(_tok_uid, len(pairs))
+        except Exception as _te: print(f"[Tokens] watchlist: {_te}")
     return jsonify({"results": results, "scanned": len(pairs)})
 
 
@@ -4673,9 +5247,131 @@ def api_pairs():
     return jsonify(get_pairs_exchange(exchange, market)[:limit])
 
 
+@app.route("/api/my-permissions")
+@login_required
+def api_my_permissions():
+    username = session.get("username", "")
+    try:
+        user = _DBUser.query.filter_by(username=username).first()
+        if not user:
+            return jsonify({"is_admin": False, "daily_tokens": 500, "tokens_remaining": 500,
+                            "allowed_tabs": ["scan","pairs","settings"],
+                            "allowed_modules": ["ob","fvg","fib","bias"],
+                            "allowed_exchanges": ["binance"], "allowed_timeframes": ["1h","4h"]})
+        perms = get_user_permissions(user)
+        maint = _GlobalSetting.query.filter_by(key="maintenance_mode").first()
+        perms["maintenance_mode"] = (maint.value == "true") if maint else False
+        perms["username"] = user.username
+        perms["role"]     = user.role
+        return jsonify(perms)
+    except Exception as e:
+        return jsonify({"error": str(e), "is_admin": False, "daily_tokens": 500,
+                        "tokens_remaining": 500, "allowed_tabs": ["scan","pairs","settings"],
+                        "allowed_modules": ["ob","fvg","fib","bias"],
+                        "allowed_exchanges": ["binance"], "allowed_timeframes": ["1h","4h"]})
+
+
+@app.route("/guest-access")
+def guest_access():
+    """Auto-login guest by device fingerprint."""
+    import hashlib, secrets
+    ip = request.headers.get("X-Forwarded-For", request.remote_addr or "").split(",")[0].strip()
+    ua = request.headers.get("User-Agent", "")
+    lang = request.headers.get("Accept-Language", "")
+    fp_raw = f"{ip}|{ua}|{lang}"
+    fp = hashlib.sha256(fp_raw.encode()).hexdigest()
+    try:
+        from models import GuestDevice
+        allow = True
+        try:
+            gs = _GlobalSetting.query.filter_by(key="allow_guest_access").first()
+            if gs and gs.value == "false":
+                allow = False
+        except Exception:
+            pass
+        if not allow:
+            return redirect(url_for("index"))
+
+        gd = GuestDevice.query.filter_by(device_fingerprint=fp).first()
+        if gd:
+            user = _DBUser.query.get(gd.user_id)
+            if user and user.status == "active":
+                gd.last_seen_at = datetime.now(timezone.utc)
+                db.session.commit()
+                session["logged_in"] = True
+                session["username"]  = user.username
+                session["user_id"]   = user.id
+                return redirect(url_for("index"))
+
+        # Create new guest
+        rnd = secrets.token_hex(3)
+        gname = f"guest_{rnd}"
+        gpwd  = secrets.token_urlsafe(16)
+        new_user = _DBUser(username=gname, role="guest", status="active")
+        new_user.set_password(gpwd)
+        db.session.add(new_user)
+        db.session.flush()
+        gd_new = GuestDevice(device_fingerprint=fp, user_id=new_user.id,
+                              ip_address=ip, user_agent=ua)
+        db.session.add(gd_new)
+        db.session.commit()
+        session["logged_in"] = True
+        session["username"]  = gname
+        session["user_id"]   = new_user.id
+        session["is_guest"]  = True
+        session["guest_id"]  = gname
+        return redirect(url_for("index"))
+    except Exception as e:
+        print(f"[GUEST-ACCESS] Error: {e}")
+        return redirect(url_for("index"))
+
+
+def _get_scan_user_id():
+    """Return DB user_id for token tracking, or None if not applicable."""
+    uid = session.get("user_id")
+    if not uid:
+        try:
+            u = _DBUser.query.filter_by(username=session.get("username", "")).first()
+            if u:
+                uid = u.id
+        except Exception:
+            pass
+    return uid
+
+
+def _check_and_get_token_user():
+    """Return (db_user, user_id) if token check passes, or (None, None) to skip, raises 429 on limit."""
+    uid = _get_scan_user_id()
+    if not uid:
+        return None, None
+    try:
+        db_user = _DBUser.query.get(uid)
+        if not db_user or db_user.is_admin:
+            return None, None
+        if not check_tokens(db_user):
+            return "limit", uid
+        return db_user, uid
+    except Exception:
+        return None, None
+
+
 @app.route("/api/scan", methods=["POST"])
 @login_required
 def api_scan():
+    err = _guest_tab_check("scan")
+    if err is not None: return err
+
+    # Token check
+    _scan_user_id = None
+    try:
+        _scan_db_user = _DBUser.query.filter_by(username=session.get("username", "")).first()
+        if _scan_db_user and not _scan_db_user.is_admin:
+            if not check_tokens(_scan_db_user):
+                return jsonify({"error": "Daily scan limit reached. Resets at midnight UTC."}), 429
+            _scan_user_id = _scan_db_user.id
+    except Exception:
+        pass
+
     payload = request.get_json(force=True) or {}
     settings = parse_settings(payload.get("settings", {}))
     market = payload.get("market", "perpetual")
@@ -4773,6 +5469,70 @@ def api_scan():
         # OR logic — at least one checked signal must be present
         results = [r for r in results if any(has_signal(r, s) for s in checked_signals)]
 
+    if _scan_user_id:
+        try:
+            consume_tokens(_scan_user_id, len(symbols))
+        except Exception:
+            pass
+
+    # ── Intelligence logging hook — NEVER blocks scan response ────────────
+    try:
+        from signal_extractor import extract_zone_signals_from_api_scan_result
+        from signal_logger import log_normalized_signal as _log_signal
+
+        # Derive allowed modules from what the user actually had checked.
+        # Both checked_signals (OR filter) and required_signals (AND filter)
+        # are combined — if either list mentions a signal type, that module
+        # is allowed in Intelligence.
+        _sig_union = set(checked_signals) | set(required_signals)
+        _intel_allowed: set = set()
+        if "OB" in _sig_union:
+            _intel_allowed.update({"ob", "bb"})  # OB family includes Breakers
+        if "BREAKER" in _sig_union:
+            _intel_allowed.add("bb")
+        if "FVG" in _sig_union:
+            _intel_allowed.add("fvg")
+        # Empty = no filter active → accept all supported modules
+        if not _intel_allowed:
+            _intel_allowed = {"ob", "fvg", "bb"}
+
+        _intel_extracted = _intel_logged = _intel_dupes = _intel_skipped = _intel_errors = 0
+
+        for _intel_r in results:
+            try:
+                _intel_sigs = extract_zone_signals_from_api_scan_result(
+                    _intel_r, exchange=exchange, allowed_modules=_intel_allowed
+                )
+                if not _intel_sigs:
+                    _intel_skipped += 1
+                    continue
+                for _intel_norm in _intel_sigs:
+                    _intel_extracted += 1
+                    _intel_lres = _log_signal(_intel_norm, source="live")
+                    if _intel_lres.get("logged"):
+                        _intel_logged += 1
+                    elif _intel_lres.get("reason") == "duplicate":
+                        _intel_dupes += 1
+                    else:
+                        _intel_errors += 1
+            except Exception as _intel_re:
+                _intel_errors += 1
+                print(f"[Intel Hook api_scan] result error: {_intel_re}")
+
+        _scan_filter_summary = (
+            f"ob={'OB' in _sig_union},fvg={'FVG' in _sig_union},"
+            f"bb={'BREAKER' in _sig_union}"
+        )
+        print(
+            f"[Intel Hook api_scan] scan_filters={_scan_filter_summary} "
+            f"allowed_modules={','.join(sorted(_intel_allowed))} "
+            f"extracted={_intel_extracted} logged={_intel_logged} "
+            f"dupes={_intel_dupes} skipped={_intel_skipped} errors={_intel_errors}"
+        )
+    except Exception as _intel_hook_err:
+        print(f"[Intel Hook api_scan] error: {_intel_hook_err}")
+    # ── end Intelligence hook ──────────────────────────────────────────────
+
     return jsonify({
         "scanned": len(symbols),
         "results": results,
@@ -4783,6 +5543,11 @@ def api_scan():
 @app.route("/api/compressed_scan", methods=["POST"])
 @login_required
 def api_compressed_scan():
+    err = _guest_tab_check("compressed")
+    if err is not None: return err
+    _tok_user, _tok_uid = _check_and_get_token_user()
+    if _tok_user == "limit":
+        return jsonify({"error": "daily_limit_reached", "message": "Daily scan tokens exhausted. Resets at midnight UTC."}), 429
     payload = request.get_json(force=True) or {}
     tf = payload.get("timeframe", "1h")
     market = payload.get("market", "perpetual")
@@ -4821,12 +5586,20 @@ def api_compressed_scan():
             continue
     data.sort(key=lambda x: x["rangePct"])
     print(f"[DEBUG] compressed_scan results={len(data)}")
+    if _tok_uid:
+        try: consume_tokens(_tok_uid, len(symbols))
+        except Exception as _te: print(f"[Tokens] compressed: {_te}")
     return jsonify(data)
 
 
 @app.route("/api/trending_scan", methods=["POST"])
 @login_required
 def api_trending_scan():
+    err = _guest_tab_check("trending")
+    if err is not None: return err
+    _tok_user, _tok_uid = _check_and_get_token_user()
+    if _tok_user == "limit":
+        return jsonify({"error": "daily_limit_reached", "message": "Daily scan tokens exhausted. Resets at midnight UTC."}), 429
     payload = request.get_json(force=True) or {}
     tf = payload.get("timeframe", "1h")
     market = payload.get("market", "perpetual")
@@ -4836,6 +5609,9 @@ def api_trending_scan():
     pairs = get_pairs_exchange(exchange, market)[:150]
     if mode == "movers":
         movers = sorted(pairs, key=lambda x: abs(x["changePct"]), reverse=True)[:limit]
+        if _tok_uid:
+            try: consume_tokens(_tok_uid, len(movers))
+            except Exception as _te: print(f"[Tokens] trending: {_te}")
         return jsonify(movers)
     out = []
     for item in pairs[:80]:
@@ -4864,12 +5640,20 @@ def api_trending_scan():
         except Exception:
             continue
     out.sort(key=lambda x: (x["relVol"], abs(x["changePct"])), reverse=True)
+    if _tok_uid:
+        try: consume_tokens(_tok_uid, len(pairs[:80]))
+        except Exception as _te: print(f"[Tokens] trending: {_te}")
     return jsonify(out[:limit])
 
 
 @app.route("/api/ath_atl_scan", methods=["POST"])
 @login_required
 def api_ath_atl_scan():
+    err = _guest_tab_check("ath_atl")
+    if err is not None: return err
+    _tok_user, _tok_uid = _check_and_get_token_user()
+    if _tok_user == "limit":
+        return jsonify({"error": "daily_limit_reached", "message": "Daily scan tokens exhausted. Resets at midnight UTC."}), 429
     payload = request.get_json(force=True) or {}
     mode = payload.get("mode", "both")          # ath | atl | both
     status = payload.get("status", "current")   # current | recent | near
@@ -4958,12 +5742,20 @@ def api_ath_atl_scan():
                 results.append(r)
 
     results.sort(key=lambda x: min(x["distAthPct"], x["distAtlPct"]))
+    if _tok_uid:
+        try: consume_tokens(_tok_uid, len(symbols))
+        except Exception as _te: print(f"[Tokens] ath_atl: {_te}")
     return jsonify(results[:limit])
 
 
 @app.route("/api/bias_scan", methods=["POST"])
 @login_required
 def api_bias_scan():
+    err = _guest_tab_check("bias")
+    if err is not None: return err
+    _tok_user, _tok_uid = _check_and_get_token_user()
+    if _tok_user == "limit":
+        return jsonify({"error": "daily_limit_reached", "message": "Daily scan tokens exhausted. Resets at midnight UTC."}), 429
     payload = request.get_json(force=True) or {}
     tf = payload.get("timeframe", "1d")
     market = payload.get("market", "perpetual")
@@ -5276,7 +6068,9 @@ def api_bias_scan():
 
     conf_order = {"Strong": 0, "Moderate": 1, "Weak": 2}
     results.sort(key=lambda x: (conf_order.get(x["confidence"], 3), -x["gatesPassed"]))
-
+    if _tok_uid:
+        try: consume_tokens(_tok_uid, len(symbols))
+        except Exception as _te: print(f"[Tokens] bias: {_te}")
     return jsonify({
         "results": results,
         "scanned": len(symbols),

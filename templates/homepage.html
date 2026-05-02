@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>ZyNi SMC — Smart Money Screener</title>
-<style>
+{% raw %}<style>
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
 
 [data-theme="dark"]{
@@ -438,6 +438,22 @@ footer{position:relative;z-index:1;border-top:1px solid var(--border);background
 .lw-error{background:rgba(127,29,29,.3);border:1px solid #7f1d1d80;color:#f87171;border-radius:8px;padding:10px 12px;font-size:11px;margin-bottom:16px;text-align:center;font-family:'Inter',sans-serif}
 .lw-footer{text-align:center;margin-top:16px;font-size:10px;color:#152030;letter-spacing:1.5px;font-family:'Inter',sans-serif}
 .lw-card.fly-out{animation:unlockCard .55s cubic-bezier(.4,0,.2,1) forwards!important}
+.lw-admin-toggle{text-align:center;margin-top:16px}
+.lw-admin-link{font-size:10px;color:#2e5272;letter-spacing:1.5px;cursor:pointer;font-family:'Inter',sans-serif;text-transform:uppercase;transition:color .2s,border-color .2s;border-bottom:1px dashed #1e3a52;padding-bottom:2px;user-select:none}
+.lw-admin-link:hover{color:#f59e0b;border-bottom-color:rgba(245,158,11,.5)}
+.lw-admin-badge{display:none;background:rgba(180,83,9,.15);border:1px solid rgba(245,158,11,.25);color:#f59e0b;font-size:9px;letter-spacing:2px;padding:4px 10px;border-radius:5px;text-align:center;margin-bottom:16px;font-family:'Inter',sans-serif;font-weight:700}
+.lw-card.admin-mode .lw-admin-badge{display:block}
+.lw-card.admin-mode .lw-card-title{color:#d97706;letter-spacing:2.5px}
+.lw-card.admin-mode::before{background:linear-gradient(90deg,transparent,rgba(245,158,11,.4),transparent)}
+.lw-card.admin-mode{border-color:#2a2010}
+.lw-btn.admin-btn{background:linear-gradient(135deg,#92400e 0%,#d97706 100%);box-shadow:0 0 24px rgba(217,119,6,.45),0 0 0 1px rgba(245,158,11,.2),0 4px 16px rgba(0,0,0,.4)}
+.lw-btn.admin-btn:hover{box-shadow:0 0 36px rgba(217,119,6,.65),0 0 0 1px rgba(245,158,11,.35),0 4px 20px rgba(0,0,0,.5);transform:translateY(-1px)}
+.lw-guest-wrap{margin-top:14px}
+.lw-guest-btn{width:100%;background:linear-gradient(135deg,rgba(34,211,238,.04),rgba(6,182,212,.07));border:1px solid rgba(34,211,238,.32);color:#22d3ee;padding:13px 16px;border-radius:10px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;letter-spacing:1.5px;transition:all .25s;position:relative;overflow:hidden;box-sizing:border-box;animation:guestNeon 2.8s ease-in-out infinite}
+@keyframes guestNeon{0%,100%{box-shadow:0 0 18px rgba(34,211,238,.1),inset 0 0 18px rgba(34,211,238,.03);border-color:rgba(34,211,238,.32)}50%{box-shadow:0 0 32px rgba(34,211,238,.22),0 0 55px rgba(34,211,238,.07),inset 0 0 28px rgba(34,211,238,.08);border-color:rgba(34,211,238,.58)}}
+.lw-guest-btn:hover{background:rgba(34,211,238,.08);border-color:rgba(34,211,238,.7);box-shadow:0 0 40px rgba(34,211,238,.32),inset 0 0 28px rgba(34,211,238,.1);transform:translateY(-1px);animation:none;color:#67e8f9}
+.lw-guest-btn::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(34,211,238,.06),transparent 60%);pointer-events:none}
+.lw-guest-sub{text-align:center;font-size:9.5px;color:#1e3252;margin-top:8px;letter-spacing:1.2px;font-family:'Inter',sans-serif}
 @keyframes unlockCard{0%{opacity:1;transform:translateY(0) scale(1)}40%{opacity:1;transform:translateY(-6px) scale(1.015)}100%{opacity:0;transform:translateY(-50px) scale(.95)}}
 @keyframes zyniZoom{0%{transform:scale(1);opacity:1;text-shadow:0 0 30px rgba(34,211,238,.8),0 0 60px rgba(34,211,238,.4)}50%{transform:scale(3.5);opacity:1;text-shadow:0 0 60px rgba(34,211,238,1),0 0 120px rgba(34,211,238,.6)}100%{transform:scale(14);opacity:0;text-shadow:0 0 100px rgba(34,211,238,.5),0 0 200px rgba(34,211,238,.2)}}
 @keyframes bgPulse{0%{transform:scale(1);opacity:.8}100%{transform:scale(10);opacity:0}}
@@ -540,7 +556,7 @@ footer{position:relative;z-index:1;border-top:1px solid var(--border);background
 @media(max-width:480px){#statement-3d-canvas{height:260px}}
 .stmt-hl{background:linear-gradient(90deg,#f59e0b,#fbbf24 60%,#f97316);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 10px rgba(245,158,11,0.40))}
 .stmt-hl2{background:linear-gradient(90deg,#22d3ee,#38bdf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-</style>
+</style>{% endraw %}
 </head>
 <body>
 <canvas id="three-canvas"></canvas>
@@ -1012,7 +1028,7 @@ footer{position:relative;z-index:1;border-top:1px solid var(--border);background
   </div>
 </footer>
 
-<script>
+{% raw %}<script>
 // ════════════════════════════════
 // TRANSLATIONS
 // ════════════════════════════════
@@ -1316,12 +1332,16 @@ function buildTicker(){
 }
 
 // ── GAINERS/LOSERS ──
-document.getElementById('gainers').innerHTML=GAINERS.map(g=>`<div class="gl-row"><div><div class="gl-sym" style="color:#22c55e">${g.sym}</div><div class="gl-p">${g.price}</div><div class="gl-bw"><div class="gl-b" style="background:#22c55e;width:${g.bar}%"></div></div></div><div class="gl-chg up">${g.chg}</div></div>`).join('');
-document.getElementById('losers').innerHTML=LOSERS.map(g=>`<div class="gl-row"><div><div class="gl-sym" style="color:#ef4444">${g.sym}</div><div class="gl-p">${g.price}</div><div class="gl-bw"><div class="gl-b" style="background:#ef4444;width:${g.bar}%"></div></div></div><div class="gl-chg dn">${g.chg}</div></div>`).join('');
+function buildGL(){
+  document.getElementById('gainers').innerHTML=GAINERS.map(g=>`<div class="gl-row"><div><div class="gl-sym" style="color:#22c55e">${g.sym}</div><div class="gl-p">${g.price}</div><div class="gl-bw"><div class="gl-b" style="background:#22c55e;width:${g.bar}%"></div></div></div><div class="gl-chg up">${g.chg}</div></div>`).join('');
+  document.getElementById('losers').innerHTML=LOSERS.map(g=>`<div class="gl-row"><div><div class="gl-sym" style="color:#ef4444">${g.sym}</div><div class="gl-p">${g.price}</div><div class="gl-bw"><div class="gl-b" style="background:#ef4444;width:${g.bar}%"></div></div></div><div class="gl-chg dn">${g.chg}</div></div>`).join('');
+}
 
 // ── VOL MINI ──
-const mx=Math.max(...EXCHS.map(e=>e.v));
-document.getElementById('vol-mini').innerHTML=EXCHS.map(e=>{const h=Math.round(e.v/mx*48);const lbl=e.v>=10?'$'+e.v.toFixed(0)+'B':'$'+e.v.toFixed(1)+'B';return`<div class="vol-mini-col"><div style="font-size:7px;color:var(--text3);font-family:'DM Sans',sans-serif;margin-bottom:2px">${lbl}</div><div class="vol-mini-bar" style="height:${h}px;background:${e.c};opacity:0.6;border-radius:3px 3px 0 0"></div><div class="vol-mini-name">${e.n}</div></div>`}).join('');
+function buildVol(){
+  const mx=Math.max(...EXCHS.map(e=>e.v),1);
+  document.getElementById('vol-mini').innerHTML=EXCHS.map(e=>{const h=Math.round(e.v/mx*48);const lbl=e.v>=10?'$'+e.v.toFixed(0)+'B':'$'+e.v.toFixed(1)+'B';return`<div class="vol-mini-col"><div style="font-size:7px;color:var(--text3);font-family:'DM Sans',sans-serif;margin-bottom:2px">${lbl}</div><div class="vol-mini-bar" style="height:${h}px;background:${e.c};opacity:0.6;border-radius:3px 3px 0 0"></div><div class="vol-mini-name">${e.n}</div></div>`}).join('');
+}
 
 // ── GAUGE ──
 let fgV=72;
@@ -1420,7 +1440,7 @@ const sCfg=[[128,4,'#22d3ee',-48,-62],[202,4,'#22d3ee',48,-62],[143,2,'#a5f3fc',
 const sparks=[];
 sCfg.forEach(c=>{const e=document.createElement('div');e.style.cssText=`position:absolute;left:${c[0]}px;bottom:${c[1]}px;width:3px;height:3px;border-radius:50%;background:${c[2]};opacity:0;pointer-events:none`;dw.appendChild(e);sparks.push({el:e,dx:c[3],dy:c[4]})});
 
-</script>
+</script>{% endraw %}
 
 <!-- ═══════════════════════════════
      LOGIN OVERLAY — drop animation
@@ -1446,7 +1466,8 @@ sCfg.forEach(c=>{const e=document.createElement('div');e.style.cssText=`position
     </div>
     <div class="lw-card" id="lwCard">
       <button class="lw-close" onclick="closeLoginDrop()">✕</button>
-      <div class="lw-card-title">ENTER CREDENTIALS TO ACCESS</div>
+      <div class="lw-card-title" id="lwCardTitle">ENTER CREDENTIALS TO ACCESS</div>
+      <div class="lw-admin-badge" id="lwAdminBadge">⚙ ADMIN ACCESS</div>
       <div id="lwErrBox" class="lw-error" style="display:none"></div>
       <form id="lwForm" method="POST" action="/login">
         <div class="lw-field">
@@ -1458,13 +1479,18 @@ sCfg.forEach(c=>{const e=document.createElement('div');e.style.cssText=`position
           <input type="password" name="password" id="lwPass" placeholder="••••••••" autocomplete="current-password">
         </div>
         <button type="submit" class="lw-btn" id="lwBtn">UNLOCK →</button>
+        <div class="lw-admin-toggle"><span class="lw-admin-link" id="lwAdminLink" onclick="lwToggleAdminMode()">Admin Access</span></div>
+        <div class="lw-guest-wrap" id="lwGuestWrap">
+          <button type="button" class="lw-guest-btn" id="lwGuestBtn" onclick="lwGuestLogin()">◇ &nbsp;SIGN IN AS GUEST</button>
+          <div class="lw-guest-sub">LIMITED ACCESS · NO ACCOUNT REQUIRED</div>
+        </div>
       </form>
     </div>
     <div class="lw-footer">PRIVATE ACCESS ONLY</div>
   </div>
 </div>
 
-<script>
+{% raw %}<script>
 // ═══ LOGIN DROP SYSTEM ═══
 (function(){
   const dw=document.getElementById('lwDustWrap');
@@ -1519,6 +1545,30 @@ function closeLoginDrop(e){
   setTimeout(function(){wrap.classList.remove('visible');wrap.style.opacity='';wrap.style.transform='translate(-50%, calc(-50% - 120vh))';overlay.classList.remove('show');gridBg.classList.remove('show');},500);
 }
 
+var _lwAdminMode=false;
+function lwToggleAdminMode(){
+  _lwAdminMode=!_lwAdminMode;
+  var card=document.getElementById('lwCard');
+  var title=document.getElementById('lwCardTitle');
+  var btn=document.getElementById('lwBtn');
+  var link=document.getElementById('lwAdminLink');
+  var errBox=document.getElementById('lwErrBox');
+  errBox.style.display='none';
+  if(_lwAdminMode){
+    card.classList.add('admin-mode');
+    title.textContent='ADMIN ACCESS';
+    btn.textContent='ADMIN LOGIN →';
+    btn.classList.add('admin-btn');
+    link.textContent='← User Login';
+  } else {
+    card.classList.remove('admin-mode');
+    title.textContent='ENTER CREDENTIALS TO ACCESS';
+    btn.textContent='UNLOCK →';
+    btn.classList.remove('admin-btn');
+    link.textContent='Admin Access';
+  }
+}
+
 document.getElementById('lwForm').addEventListener('submit',function(e){
   e.preventDefault();
   var btn=document.getElementById('lwBtn');
@@ -1528,12 +1578,29 @@ document.getElementById('lwForm').addEventListener('submit',function(e){
   if(!un){errBox.textContent='Please enter your username.';errBox.style.display='block';document.getElementById('lwUser').focus();return;}
   btn.textContent='VERIFYING...';btn.disabled=true;errBox.style.display='none';
   var fd=new FormData();fd.append('username',un);fd.append('password',pw);
-  fetch('/login',{method:'POST',body:fd,redirect:'manual'})
+  var endpoint=_lwAdminMode?'/admin/login':'/login';
+  fetch(endpoint,{method:'POST',body:fd,redirect:'manual'})
     .then(function(r){
-      if(r.type==='opaqueredirect'||r.status===0||r.status===302||(r.ok&&r.url&&!r.url.includes('/login'))){lwUnlockSequence();}
-      else{return r.text().then(function(h){var hasErr=h.indexOf('error')!==-1||h.indexOf('invalid')!==-1||h.indexOf('wrong')!==-1||h.indexOf('incorrect')!==-1||h.indexOf('not recognised')!==-1;if(hasErr||r.status===200){btn.textContent='UNLOCK →';btn.disabled=false;var m=h.match(/<div class="error">([^<]+)<\/div>/);errBox.textContent=m?m[1]:'Invalid credentials. Try again.';errBox.style.display='block';}else{lwUnlockSequence();}});}
+      if(r.type==='opaqueredirect'||r.status===0||r.status===302){
+        if(_lwAdminMode){btn.textContent='✓ ADMIN';setTimeout(function(){window.location.href='/admin';},600);}
+        else{lwUnlockSequence();}
+      } else {
+        return r.text().then(function(h){
+          var hasErr=h.indexOf('error')!==-1||h.indexOf('invalid')!==-1||h.indexOf('wrong')!==-1||h.indexOf('incorrect')!==-1||h.indexOf('not recognised')!==-1||h.indexOf('Invalid admin')!==-1;
+          if(hasErr||r.status===200){
+            btn.textContent=_lwAdminMode?'ADMIN LOGIN →':'UNLOCK →';
+            btn.disabled=false;
+            var m=h.match(/<div class="error">([^<]+)<\/div>/);
+            errBox.textContent=m?m[1]:'Invalid credentials. Try again.';
+            errBox.style.display='block';
+          } else {
+            if(_lwAdminMode){btn.textContent='✓ ADMIN';setTimeout(function(){window.location.href='/admin';},600);}
+            else{lwUnlockSequence();}
+          }
+        });
+      }
     })
-    .catch(function(){lwUnlockSequence();});
+    .catch(function(){if(_lwAdminMode){window.location.href='/admin';}else{lwUnlockSequence();}});
 });
 
 function lwUnlockSequence(){
@@ -1559,6 +1626,25 @@ function lwUnlockSequence(){
   setTimeout(function(){window.location.href='/';},1750);
 }
 
+function lwGuestLogin(){
+  var btn=document.getElementById('lwGuestBtn');
+  var errBox=document.getElementById('lwErrBox');
+  btn.disabled=true;btn.textContent='CONNECTING...';errBox.style.display='none';
+  fetch('/guest/login',{method:'POST',redirect:'manual'})
+    .then(function(r){
+      if(r.type==='opaqueredirect'||r.status===0||r.status===302){
+        btn.textContent='✓  GUEST ACCESS';btn.style.animation='none';btn.style.borderColor='rgba(34,211,238,.7)';
+        setTimeout(function(){window.location.href='/';},800);
+      } else {
+        return r.json().then(function(d){
+          btn.disabled=false;btn.textContent='◇  SIGN IN AS GUEST';
+          errBox.textContent=d.error||'Guest access disabled.';errBox.style.display='block';
+        });
+      }
+    })
+    .catch(function(){btn.disabled=false;btn.textContent='◇  SIGN IN AS GUEST';});
+}
+
 var _lwBounceStarted=false;
 function lwStartBounce(){
   if(_lwBounceStarted)return;_lwBounceStarted=true;
@@ -1577,7 +1663,7 @@ function lwStartBounce(){
   function next(){requestAnimationFrame(function(ts){animateLetter(letters[idx],ts);});}
   next();
 }
-</script>
+</script>{% endraw %}
 
 <!-- ── THREE.JS + GSAP CDN ── -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -1586,7 +1672,7 @@ function lwStartBounce(){
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
 
-<script>
+{% raw %}<script>
 /* ════════════════════════════════════════════════════════════
    THREE.JS — cinematic 3D background
 ════════════════════════════════════════════════════════════ */
@@ -2447,6 +2533,6 @@ function lwStartBounce(){
   });
 })();
 
-</script>
+</script>{% endraw %}
 </body>
 </html>

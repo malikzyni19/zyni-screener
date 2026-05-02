@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>ZyNi Admin — Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#020810;color:#e2e8f0;min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(34,211,238,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(34,211,238,.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+.glow-tl{position:fixed;top:-100px;left:-100px;width:380px;height:380px;border-radius:50%;background:radial-gradient(circle,rgba(34,211,238,.08) 0%,transparent 70%);pointer-events:none}
+.glow-br{position:fixed;bottom:-80px;right:-80px;width:320px;height:320px;border-radius:50%;background:radial-gradient(circle,rgba(59,130,246,.07) 0%,transparent 70%);pointer-events:none}
+.wrap{width:100%;max-width:380px;padding:24px;position:relative;z-index:1}
+.logo{text-align:center;margin-bottom:28px}
+.logo-title{font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:700;color:#22d3ee;letter-spacing:4px;text-shadow:0 0 24px rgba(34,211,238,.5)}
+.logo-sub{font-size:10px;color:#334d66;letter-spacing:3px;margin-top:6px;text-transform:uppercase}
+.logo-line{width:50px;height:1px;background:linear-gradient(90deg,transparent,#22d3ee,transparent);margin:12px auto 0}
+.card{background:linear-gradient(145deg,#060f1e,#04090f);border:1px solid #1a2e40;border-radius:16px;padding:28px;box-shadow:0 0 0 1px rgba(34,211,238,.05),0 8px 40px rgba(0,0,0,.6)}
+.card::before{content:'';position:absolute;top:0;left:24px;right:24px;height:1px;background:linear-gradient(90deg,transparent,rgba(34,211,238,.3),transparent);border-radius:2px}
+.card{position:relative}
+.card-title{font-size:10px;color:#334d66;letter-spacing:2.5px;text-transform:uppercase;font-weight:600;text-align:center;margin-bottom:22px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:10px;color:#334d66;letter-spacing:1px;text-transform:uppercase;margin-bottom:7px;font-weight:600}
+.field input{width:100%;background:#04090f;color:#e2e8f0;border:1px solid #1a2e40;border-radius:9px;padding:13px 14px;font-family:'JetBrains Mono',monospace;font-size:14px;outline:none;transition:border-color .2s,box-shadow .2s;letter-spacing:1px}
+.field input:focus{border-color:rgba(34,211,238,.4);box-shadow:0 0 0 3px rgba(34,211,238,.06)}
+.btn{width:100%;background:linear-gradient(135deg,#0891b2,#06b6d4);color:#fff;border:none;padding:14px;border-radius:9px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;letter-spacing:1.5px;transition:all .2s;box-shadow:0 0 24px rgba(8,145,178,.4),0 4px 16px rgba(0,0,0,.4);margin-top:6px}
+.btn:hover{box-shadow:0 0 36px rgba(8,145,178,.6),0 4px 20px rgba(0,0,0,.5);transform:translateY(-1px)}
+.error{background:rgba(127,29,29,.25);border:1px solid rgba(248,113,113,.3);color:#f87171;border-radius:8px;padding:10px 12px;font-size:11px;margin-bottom:16px;text-align:center}
+.footer{text-align:center;margin-top:18px;font-size:9.5px;color:#1a2e40;letter-spacing:2px;text-transform:uppercase}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="glow-tl"></div>
+<div class="glow-br"></div>
+<div class="wrap">
+  <div class="logo">
+    <div class="logo-title">ZyNi</div>
+    <div class="logo-sub">SMC Screener — Admin</div>
+    <div class="logo-line"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Admin Access Only</div>
+    {% if error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
+    <form method="POST">
+      <div class="field">
+        <label>Username</label>
+        <input type="text" name="username" placeholder="admin username" autocomplete="username" autofocus/>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" name="password" placeholder="••••••••" autocomplete="current-password"/>
+      </div>
+      <button type="submit" class="btn">LOGIN →</button>
+    </form>
+  </div>
+  <div class="footer">Admin Access Only · ZyNi SMC</div>
+</div>
+</body>
+</html>
