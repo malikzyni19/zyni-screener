@@ -488,38 +488,17 @@ footer{position:relative;z-index:1;border-top:1px solid var(--border);background
 
 /* ── HERO 3D CANVAS ── */
 #hero-3d-canvas{
-  position:absolute;top:0;left:0;width:100%;height:100%;
-  z-index:1;pointer-events:none;display:block;
+  position:absolute;inset:0;width:100%;height:100%;
+  z-index:0;overflow:hidden;pointer-events:none;
 }
-.hero-label-layer{
-  position:absolute;top:0;left:0;width:100%;height:100%;
-  z-index:3;pointer-events:none;overflow:hidden;
-}
-.orbit-pill{
-  position:absolute;
-  font-size:18px;font-weight:700;letter-spacing:0;text-transform:none;
-  font-family:'DM Sans',sans-serif;
-  white-space:nowrap;background:rgba(3,8,15,0.72);
-  padding:5px 14px;border-radius:50px;
-  backdrop-filter:blur(10px);
-  transform:translate(-50%,-50%);
-  color:rgba(255,255,255,0.90);
-  transition:opacity 0.25s;
-  pointer-events:none;
-}
+#hero-3d-canvas canvas{position:absolute;top:0;left:0}
 
 @media(max-width:960px){
   .hero-bottom{flex-direction:column}
   #hero-rw{min-width:160px}
 }
-@media(max-width:768px){
-  #hero-3d-canvas{opacity:0.75}
-  .orbit-pill{font-size:9px;padding:3px 9px;letter-spacing:1px}
-}
-@media(max-width:480px){
-  #hero-3d-canvas{opacity:0.65}
-  .orbit-pill{font-size:12px;padding:4px 9px;letter-spacing:0;backdrop-filter:none;background:rgba(3,8,15,0.75)}
-}
+@media(max-width:768px){#hero-3d-canvas{opacity:0.75}}
+@media(max-width:480px){#hero-3d-canvas{opacity:0.65}}
 
 /* ── HERO BUTTON GLOW ── */
 .btn-main{z-index:1}
@@ -559,11 +538,13 @@ footer{position:relative;z-index:1;border-top:1px solid var(--border);background
 .letter-span{display:inline-block;opacity:0;will-change:opacity}
 
 
+/* ── ORB OVERLAY (fixed transition overlay) ── */
+#orb-overlay-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:50;pointer-events:none;opacity:0;background:rgba(0,2,14,0.96);overflow:hidden}
+#orb-overlay-canvas canvas{position:absolute;top:0;left:0;display:block}
+
 /* ── STATEMENT SECTION ── */
-#statement{padding:72px 20px 80px;text-align:center;position:relative;overflow:hidden;min-height:360px}
+#statement{padding:72px 20px 80px;text-align:center;position:relative;min-height:360px}
 @media(max-width:640px){#statement{padding:48px 16px 56px}}
-#robot-canvas-wrap{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:0}
-@media(max-width:640px){#robot-canvas-wrap{opacity:0.45}}
 #statement .statement-wrap{position:relative;z-index:1}
 .statement-wrap{max-width:860px;margin:0 auto}
 .statement-l1{font-size:clamp(1.15rem,2.5vw,1.72rem);font-weight:700;line-height:1.55;color:var(--text);margin:0 0 24px;opacity:0;transform:perspective(700px) translateZ(-80px) scale(0.78);filter:blur(4px);transition:opacity 1.1s cubic-bezier(.22,1,.36,1),transform 1.1s cubic-bezier(.22,1,.36,1),filter 1.1s cubic-bezier(.22,1,.36,1)}
@@ -720,6 +701,7 @@ footer{position:relative;z-index:1;border-top:1px solid var(--border);background
 
 <!-- HERO -->
 <section class="hero">
+  <div id="hero-3d-canvas" aria-hidden="true"></div>
   <!-- LEFT: text content -->
   <div class="hero-left">
   <div class="hero-eyebrow"><span class="hero-eyebrow-dot"></span><span data-i18n="hero_eyebrow">Smart Money Concepts · Real Time</span></div>
@@ -811,11 +793,11 @@ footer{position:relative;z-index:1;border-top:1px solid var(--border);background
   </div><!-- /hero-left -->
 </section>
 
-<div class="divider"></div>
+<!-- ORB OVERLAY (fixed transition) -->
+<div id="orb-overlay-canvas" aria-hidden="true"></div>
 
 <!-- STATEMENT -->
 <div class="section" id="statement">
-  <div id="robot-canvas-wrap" aria-hidden="true"></div>
   <div class="statement-wrap">
     <p class="statement-l1">We don't provide any signals — we provide <span class="stmt-hl">ready-made setups</span> across <span class="stmt-hl">1000+ pairs</span>, just one click away.</p>
     <p class="statement-l2">This is not for beginners — this is for traders already familiar with <span class="stmt-hl2">SMC methods</span> like Order Blocks, Fair Value Gaps, Fibonacci, and Breaker Blocks.</p>
@@ -1682,6 +1664,8 @@ function lwStartBounce(){
 
 <!-- ── THREE.JS + GSAP CDN ── -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FontLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/geometries/TextGeometry.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
 
@@ -1939,854 +1923,481 @@ function lwStartBounce(){
 
 
 /* ════════════════════════════════════════════════════════════
-   HERO SCENE — Flower-Bloom Globe · Orbiting Symbols · ₿ Reveal
-
-/* ════════════════════════════════════════════════════════════
-   HERO SCENE — Bloom Globe · ₿ Orbit Reveal · Premium Coin Ring
-   Three.js + GSAP · BTC SOL ADA USDT SHIB orbital coins
+   HERO SCENE — ZyNi Smc Brand Text · Box Grid · Camera Orbit
+   Three.js · 3D text via TextGeometry
 ════════════════════════════════════════════════════════════ */
 (function initHeroScene() {
-  var hero = document.querySelector('.hero');
-  if (!hero || !window.THREE) return;
+  var container = document.getElementById('hero-3d-canvas');
+  if (!container || !window.THREE) return;
 
-  var canvas = document.createElement('canvas');
-  canvas.id = 'hero-3d-canvas';
-  canvas.setAttribute('aria-hidden', 'true');
-  hero.insertBefore(canvas, hero.firstChild);
+  /* ── Renderer ── */
+  var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.toneMapping    = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.3;
+  renderer.shadowMap.enabled   = true;
+  renderer.domElement.style.cssText = 'position:absolute;top:0;left:0;display:block;width:100%;height:100%';
+  container.appendChild(renderer.domElement);
 
-  var W = hero.offsetWidth  || 800;
-  var H = hero.offsetHeight || 600;
+  function W() { return container.clientWidth  || window.innerWidth; }
+  function H() { return container.clientHeight || window.innerHeight; }
+  renderer.setSize(W(), H());
 
-  var renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-  renderer.setSize(W, H);
+  /* ── Scene — no background (alpha: true handles transparency) ── */
+  var scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x00000c, 0.045);
 
-  var scene  = new THREE.Scene();
-  var camera = new THREE.PerspectiveCamera(44, W / H, 0.1, 200);
-  camera.position.set(0, 0.6, 10);
-  camera.lookAt(0, 0, 0);
-
-  function fitCamera() {
-    var vn = W < 400, n = W < 640;
-    camera.fov      = vn ? 64 : n ? 56 : 44;
-    camera.position.z = vn ? 16 : n ? 13 : 10;
-    camera.aspect   = W / H;
-    camera.updateProjectionMatrix();
-  }
-  fitCamera();
-
-  /* ── Lighting ── */
-  scene.add(new THREE.AmbientLight(0x060f1e, 0.78));
-  var keyLight = new THREE.PointLight(0xd8e8ff, 5.2, 36);
-  keyLight.position.set(6, 4, 9);
-  scene.add(keyLight);
-  var fillLight = new THREE.PointLight(0x1a3a88, 1.0, 22);
-  fillLight.position.set(-5, -1, 4);
-  scene.add(fillLight);
-  var rimLight = new THREE.PointLight(0x6644cc, 0.7, 18);
-  rimLight.position.set(0, -4, -5);
-  scene.add(rimLight);
-  var innerLight = new THREE.PointLight(0xf59e0b, 0, 12);
-  innerLight.position.set(0, 0, 0);
-  scene.add(innerLight);
-
-  /* ── Starfield ── */
-  var starPos = new Float32Array(300 * 3);
-  for (var si = 0; si < 300; si++) {
-    starPos[si*3]   = (Math.random() - 0.5) * 130;
-    starPos[si*3+1] = (Math.random() - 0.5) * 100;
-    starPos[si*3+2] = (Math.random() - 0.5) * 70 - 15;
-  }
-  var starGeo = new THREE.BufferGeometry();
-  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-  var starMat = new THREE.PointsMaterial({
-    color: 0xffffff, size: 0.033, transparent: true, opacity: 0.28, sizeAttenuation: true
-  });
-  scene.add(new THREE.Points(starGeo, starMat));
-
-  /* ── Globe group (petals + core — rotates as unit) ── */
-  var earthGroup = new THREE.Group();
-  scene.add(earthGroup);
-  var EARTH_R = 1.7;
-  var OPEN_D  = 0.70;
-
-  /* ── 6 petal segments ── */
-  var petals = [];
-  for (var pi = 0; pi < 6; pi++) {
-    var phiS = (Math.PI * 2 / 6) * pi;
-    var pGeo = new THREE.SphereGeometry(EARTH_R, 3, 24, phiS, Math.PI * 2 / 6);
-    var pMat = new THREE.MeshStandardMaterial({
-      color: 0x041d30, metalness: 0.55, roughness: 0.36,
-      side: THREE.DoubleSide, emissive: 0x020e18, emissiveIntensity: 0.35
-    });
-    var pMesh = new THREE.Mesh(pGeo, pMat);
-    earthGroup.add(pMesh);
-    var cPhi = phiS + Math.PI / 6;
-    petals.push({ mesh: pMesh, dir: new THREE.Vector3(Math.cos(cPhi), 0, Math.sin(cPhi)) });
-  }
-
-  /* ── Atmosphere ── */
-  earthGroup.add(new THREE.Mesh(
-    new THREE.SphereGeometry(EARTH_R + 0.14, 32, 32),
-    new THREE.MeshBasicMaterial({
-      color: 0x1a5080, transparent: true, opacity: 0.032,
-      side: THREE.BackSide, blending: THREE.AdditiveBlending, depthWrite: false
-    })
-  ));
-
-  /* ── Inner core (in earthGroup so it rotates with globe) ── */
-  var innerMesh = new THREE.Mesh(
-    new THREE.SphereGeometry(0.52, 32, 32),
-    new THREE.MeshStandardMaterial({
-      color: 0xf59e0b, metalness: 0.90, roughness: 0.07,
-      emissive: 0xf59e0b, emissiveIntensity: 0.82
-    })
+  /* ── Camera — FOV adapts for mobile ── */
+  var isMobile = W() < 640;
+  var camera = new THREE.PerspectiveCamera(
+    isMobile ? 60 : 44,
+    W() / H(), 0.1, 120
   );
-  innerMesh.scale.set(0, 0, 0);
-  earthGroup.add(innerMesh);
+  /* Initial position — overridden each frame */
+  camera.position.set(7, 6, 9);
+  camera.lookAt(0, 0.5, 0);
 
-  var glowMesh = new THREE.Mesh(
-    new THREE.SphereGeometry(0.90, 32, 32),
-    new THREE.MeshBasicMaterial({
-      color: 0xffa500, transparent: true, opacity: 0,
-      side: THREE.BackSide, blending: THREE.AdditiveBlending, depthWrite: false
-    })
+  /* ── Lights ── */
+  scene.add(new THREE.AmbientLight(0x08082a, 1.5));
+  var pl1 = new THREE.PointLight(0x6622ff, 8, 20); pl1.position.set(-3, 6, 2); pl1.castShadow = true; scene.add(pl1);
+  var pl2 = new THREE.PointLight(0x0055ff, 5, 16); pl2.position.set(4, 4, -3); scene.add(pl2);
+  var pl3 = new THREE.PointLight(0x00aaff, 3, 12); pl3.position.set(0, 8, 4);  scene.add(pl3);
+  var pl4 = new THREE.PointLight(0x4400cc, 4, 10); pl4.position.set(0, -2, 0); scene.add(pl4);
+
+  /* ── Floor ── */
+  var floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(40, 40),
+    new THREE.MeshStandardMaterial({ color: 0x000412, metalness: 0.98, roughness: 0.08 })
   );
-  earthGroup.add(glowMesh);
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = -0.01;
+  floor.receiveShadow = true;
+  scene.add(floor);
+  scene.add(new THREE.GridHelper(30, 30, 0x110044, 0x080022));
 
-  /* ── Sequential orbit ring — 5 coins evenly spaced, same direction ── */
-  var coinV = new THREE.Vector3();
-  var TAU   = Math.PI * 2;
+  /* ── Box grid ── */
+  var blues = [0x020d2e,0x030f35,0x04102a,0x020a22,0x050f30,0x030c28,0x040e32,0x021025,0x060d38,0x031128,0x050a30,0x020e2a];
+  var GAP = 0.04, COLS = 13, ROWS = 11, BOX_W = 0.82, BOX_D = 0.82;
+  var allBoxes = [];
+  var si = 0;
 
-  /* Single ring — all coins 72° apart, planet-style clockwise motion */
-  var orbRing = { r: 3.40, tilt: 0.38, speed: 0.0048 };
-  orbRing.mat = new THREE.Matrix4().makeRotationX(Math.PI / 2 + orbRing.tilt);
-  var orbMesh = new THREE.Mesh(
-    new THREE.TorusGeometry(orbRing.r, 0.013, 3, 128),
-    new THREE.MeshBasicMaterial({
-      color: 0x3399dd, transparent: true, opacity: 0.30,
-      blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
-    })
-  );
-  orbMesh.rotation.x = Math.PI / 2 + orbRing.tilt;
-  scene.add(orbMesh);
-
-  /* ── Real coin images via TextureLoader — GitHub raw CDN (CORS open) ── */
-  var txLoader = new THREE.TextureLoader();
-  var BASE = 'https://raw.githubusercontent.com/ErikThiart/cryptocurrency-icons/master/128/';
-
-  /* 5 coins evenly at 0°, 72°, 144°, 216°, 288° — same ring, same speed */
-  var coinDefs = [
-    { ticker: 'BTC',  url: BASE + 'bitcoin.png',   ang: 0 * TAU/5, spinDir:  1, rimS: 'rgba(245,158,11,0.72)', rimG: 'rgba(245,158,11,0.22)' },
-    { ticker: 'SOL',  url: BASE + 'solana.png',    ang: 1 * TAU/5, spinDir:  1, rimS: 'rgba(153,69,255,0.72)', rimG: 'rgba(153,69,255,0.22)' },
-    { ticker: 'ADA',  url: BASE + 'cardano.png',   ang: 2 * TAU/5, spinDir:  1, rimS: 'rgba(0,51,173,0.72)',   rimG: 'rgba(0,51,173,0.22)'   },
-    { ticker: 'USDT', url: BASE + 'tether.png',    ang: 3 * TAU/5, spinDir:  1, rimS: 'rgba(38,161,123,0.72)', rimG: 'rgba(38,161,123,0.22)' },
-    { ticker: 'SHIB', url: BASE + 'shiba-inu.png', ang: 4 * TAU/5, spinDir:  1, rimS: 'rgba(255,135,0,0.72)',  rimG: 'rgba(255,135,0,0.22)'  },
-  ];
-
-  coinDefs.forEach(function(c) {
-    c.loaded = false;
-    c.sprite = new THREE.Sprite(new THREE.SpriteMaterial({
-      transparent: true, depthTest: true, depthWrite: false, opacity: 0
-    }));
-    c.sprite.scale.set(0.95, 0.95, 1);
-    scene.add(c.sprite);
-
-    (function(coin) {
-      txLoader.load(coin.url, function(tex) {
-        var cv = document.createElement('canvas');
-        cv.width = cv.height = 256;
-        var ctx = cv.getContext('2d');
-
-        /* circular clip — draw real coin image */
-        ctx.save();
-        ctx.beginPath(); ctx.arc(128, 128, 118, 0, Math.PI * 2); ctx.clip();
-        ctx.drawImage(tex.image, 6, 6, 244, 244);
-        ctx.restore();
-
-        /* branded rim ring */
-        ctx.beginPath(); ctx.arc(128, 128, 118, 0, Math.PI * 2);
-        ctx.strokeStyle = coin.rimS; ctx.lineWidth = 5; ctx.stroke();
-
-        /* outer halo glow */
-        var halo = ctx.createRadialGradient(128, 128, 112, 128, 128, 140);
-        halo.addColorStop(0, coin.rimG); halo.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.beginPath(); ctx.arc(128, 128, 140, 0, Math.PI * 2);
-        ctx.fillStyle = halo; ctx.fill();
-
-        coin.sprite.material.map = new THREE.CanvasTexture(cv);
-        coin.sprite.material.needsUpdate = true;
-        coin.loaded = true;
+  for (var row = 0; row < ROWS; row++) {
+    for (var col = 0; col < COLS; col++) {
+      var cx = col - (COLS - 1) / 2;
+      var cz = row - (ROWS - 1) / 2;
+      var isCenter = (col === 6 && row === 5);
+      var h = isCenter ? 0.55 : 0.20 + Math.random() * 0.40;
+      var geo = new THREE.BoxGeometry(BOX_W, h, BOX_D);
+      var mat = new THREE.MeshStandardMaterial({
+        color:            isCenter ? 0x0044cc : blues[si % blues.length],
+        metalness:        0.88, roughness: 0.10,
+        emissive:         isCenter ? 0x002299 : 0x001155,
+        emissiveIntensity: isCenter ? 0.40 : 0.06
       });
-    })(c);
-  });
-
-
-  /* ── ₿ Sprite — in scene (world space) so orbit is globe-independent ── */
-  var bCv = document.createElement('canvas');
-  bCv.width = bCv.height = 256;
-  var bCtx = bCv.getContext('2d');
-  var bGrd = bCtx.createRadialGradient(128, 128, 0, 128, 128, 128);
-  bGrd.addColorStop(0,   'rgba(255,230,80,0.78)');
-  bGrd.addColorStop(0.32,'rgba(245,158,11,0.32)');
-  bGrd.addColorStop(1,   'rgba(245,158,11,0)');
-  bCtx.fillStyle = bGrd; bCtx.fillRect(0, 0, 256, 256);
-  bCtx.font = 'bold 158px Arial';
-  bCtx.textAlign = 'center'; bCtx.textBaseline = 'middle';
-  bCtx.fillStyle = '#fcd34d';
-  bCtx.shadowColor = '#fbbf24'; bCtx.shadowBlur = 34;
-  bCtx.fillText('₿', 128, 134);
-  var btcSprite = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: new THREE.CanvasTexture(bCv),
-    transparent: true, opacity: 0,
-    blending: THREE.AdditiveBlending, depthWrite: false
-  }));
-  btcSprite.scale.set(2.2, 2.2, 1);
-  btcSprite.position.set(0, -0.40, 0);
-  scene.add(btcSprite); /* world space — orbit is camera-independent */
-
-  /* ── Shimmer sparks — 8 gold motes in scene ── */
-  var shimmers = [];
-  for (var shi = 0; shi < 8; shi++) {
-    var shCv = document.createElement('canvas');
-    shCv.width = shCv.height = 32;
-    var shCtx = shCv.getContext('2d');
-    var shGrd = shCtx.createRadialGradient(16, 16, 0, 16, 16, 16);
-    shGrd.addColorStop(0,    'rgba(255,230,60,1.0)');
-    shGrd.addColorStop(0.30, 'rgba(245,158,11,0.65)');
-    shGrd.addColorStop(1,    'rgba(245,158,11,0)');
-    shCtx.fillStyle = shGrd; shCtx.fillRect(0, 0, 32, 32);
-    var shSp = new THREE.Sprite(new THREE.SpriteMaterial({
-      map: new THREE.CanvasTexture(shCv),
-      transparent: true, opacity: 0,
-      blending: THREE.AdditiveBlending, depthWrite: false
-    }));
-    shSp.scale.set(0.20, 0.20, 1);
-    shSp.position.set(0, 0, 0);
-    scene.add(shSp);
-    shimmers.push({ sp: shSp, ang: (Math.PI * 2 / 8) * shi });
+      var mesh = new THREE.Mesh(geo, mat);
+      mesh.castShadow = true; mesh.receiveShadow = true;
+      var grp = new THREE.Group();
+      grp.add(mesh);
+      var x  = cx * (BOX_W + GAP);
+      var z  = cz * (BOX_D + GAP);
+      var tY = h / 2;
+      var sY = tY + 5 + si * 0.07;
+      grp.position.set(x, sY, z);
+      allBoxes.push({
+        grp:        grp,
+        targetY:    tY,
+        startY:     sY,
+        delay:      si * 0.048,
+        isCenter:   isCenter,
+        landed:     false,
+        floatOffset: si * 0.41 + Math.random() * 0.5,
+        floatSpeed:  1.10 + Math.random() * 0.70,
+        floatAmp:    isCenter ? 0.18 : 0.12 + Math.random() * 0.13
+      });
+      si++;
+      scene.add(grp);
+    }
   }
+
+  /* ── Brand text: "ZyNi Smc" via TextGeometry ── */
+  var btc = new THREE.Group();     /* keep var name — animate loop references btc */
+  btc.position.set(0, 0.55 / 2 + 0.38, 0);
+  scene.add(btc);
+
+  /* Extra gold light for "Smc" metallic reflections — orbits with the text */
+  var goldTextL = new THREE.PointLight(0xfbbf24, 4.5, 9);
+  goldTextL.position.set(1.5, 2.0, 1.5);
+  scene.add(goldTextL);
+
+  /* Load font and build 3D text asynchronously */
+  if (window.THREE && window.THREE.FontLoader && window.THREE.TextGeometry) {
+    (function() {
+      var loader = new window.THREE.FontLoader();
+      loader.load(
+        'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/fonts/helvetiker_bold.typeface.json',
+        function(font) {
+          /* ── "ZyNi" — blue / neon metallic ── */
+          var zyniGeo = new THREE.TextGeometry('ZyNi', {
+            font: font, size: 0.44, height: 0.14,
+            curveSegments: 8,
+            bevelEnabled: true, bevelThickness: 0.024,
+            bevelSize: 0.014, bevelSegments: 5
+          });
+          zyniGeo.computeBoundingBox();
+          var zyniW = zyniGeo.boundingBox.max.x - zyniGeo.boundingBox.min.x;
+          var zyniMat = new THREE.MeshStandardMaterial({
+            color: 0x55aaff, metalness: 0.84, roughness: 0.08,
+            emissive: 0x1133aa, emissiveIntensity: 0.55
+          });
+          var zyniMesh = new THREE.Mesh(zyniGeo, zyniMat);
+          zyniMesh.position.set(-zyniW / 2, 0.24, 0);
+          btc.add(zyniMesh);
+
+          /* ── "Smc" — gold metallic with glow ── */
+          var smcGeo = new THREE.TextGeometry('Smc', {
+            font: font, size: 0.35, height: 0.12,
+            curveSegments: 8,
+            bevelEnabled: true, bevelThickness: 0.020,
+            bevelSize: 0.012, bevelSegments: 5
+          });
+          smcGeo.computeBoundingBox();
+          var smcW = smcGeo.boundingBox.max.x - smcGeo.boundingBox.min.x;
+          var smcMat = new THREE.MeshStandardMaterial({
+            color: 0xfbbf24, metalness: 0.97, roughness: 0.03,
+            emissive: 0x7c3f00, emissiveIntensity: 0.52
+          });
+          var smcMesh = new THREE.Mesh(smcGeo, smcMat);
+          smcMesh.position.set(-smcW / 2, -0.22, 0);
+          btc.add(smcMesh);
+        }
+      );
+    })();
+  }
+
+
+  /* Glow light under ₿ */
+  var gl = new THREE.PointLight(0x4488ff, 3, 4);
+  gl.position.set(0, 1.2, 0); scene.add(gl);
+
+  /* Pulse ring */
+  var pr = new THREE.Mesh(
+    new THREE.TorusGeometry(0.65, 0.005, 8, 60),
+    new THREE.MeshBasicMaterial({ color: 0x4466ff, transparent: true, opacity: 0.4 })
+  );
+  pr.rotation.x = Math.PI / 2; pr.position.y = 0.56; scene.add(pr);
+
+  /* ── Easing helpers ── */
+  function eIn(x)  { return x * x * x * x; }
+  function eOut(x) { return 1 - Math.pow(1 - x, 3); }
 
   /* ── State ── */
-  var mx = 0, my = 0, camTx = 0, camTy = 0, scrollY = 0;
-  var bloomFactor = 0;
-  var orbitTween  = null;
-  var BTC_ORBIT_R = 0.68;
-  var BTC_ORBIT_P = 5.2; /* orbit period seconds */
-
-  hero.addEventListener('mousemove', function(e) {
-    var r = hero.getBoundingClientRect();
-    mx = (e.clientX - r.left) / r.width  - 0.5;
-    my = (e.clientY - r.top)  / r.height - 0.5;
-  }, { passive: true });
-  hero.addEventListener('mouseleave', function() { mx = 0; my = 0; }, { passive: true });
+  var startTime = null;
+  var scrollY   = 0;
+  var active    = true;
   window.addEventListener('scroll', function() { scrollY = window.scrollY; }, { passive: true });
-
-  var active = true;
   if (window.IntersectionObserver) {
     new IntersectionObserver(function(e) { active = e[0].isIntersecting; },
-      { threshold: 0.05 }).observe(hero);
+      { threshold: 0.05 }).observe(container);
   }
 
-  var clock = new THREE.Clock();
+  /* ── Camera orbit params — responsive ── */
+  function camParams() {
+    var mob = W() < 640;
+    var tab = W() < 960;
+    return {
+      fov:    mob ? 62 : tab ? 52 : 44,
+      radius: mob ? 14 : tab ? 12 : 10,
+      height: mob ? 7  : tab ? 6  : 5.5,
+      lookY:  mob ? 1.0 : 0.5
+    };
+  }
 
-  function animate() {
+  /* ── Animate ── */
+  function animate(ts) {
     requestAnimationFrame(animate);
     if (!active) return;
-    var t = clock.getElapsedTime();
+    if (!startTime) startTime = ts;
+    var t = (ts - startTime) / 1000;
 
-    var heroH = hero.offsetHeight || 700;
-    var sf    = Math.min(scrollY / heroH, 1);
-    canvas.style.opacity   = (1 - sf).toFixed(3);
-    canvas.style.transform = 'translateY(' + (-sf * 55) + 'px)';
+    /* Scroll fade + parallax */
+    var heroH = container.clientHeight || 700;
+    var sf = Math.min(scrollY / heroH, 1);
+    container.style.opacity   = (1 - sf).toFixed(3);
+    container.style.transform = 'translateY(' + (-sf * 50) + 'px)';
 
-    earthGroup.rotation.y += 0.0015;
-    earthGroup.position.y  = Math.sin(t * 0.30) * 0.07;
-
-    /* Sequential orbit — all coins advance on single ring, evenly spaced */
-    coinDefs.forEach(function(c) {
-      c.ang += orbRing.speed;
-      coinV.set(Math.cos(c.ang) * orbRing.r, 0, Math.sin(c.ang) * orbRing.r);
-      coinV.applyMatrix4(orbRing.mat);
-      c.sprite.position.copy(coinV);
-      c.sprite.material.rotation += 0.005 * c.spinDir;
-      if (c.loaded) c.sprite.material.opacity = 0.88 + bloomFactor * 0.12;
-      c.sprite.scale.set(0.94, 0.94, 1);
+    /* Box drop-in + float */
+    allBoxes.forEach(function(b) {
+      if (b.landed) {
+        b.grp.position.y = b.targetY + Math.sin(t * b.floatSpeed + b.floatOffset) * b.floatAmp;
+      } else {
+        var p = Math.max(0, Math.min(1, (t - b.delay) / 0.72));
+        var e = p < 0.45 ? eIn(p / 0.45) * 0.15 : 0.15 + eOut((p - 0.45) / 0.55) * 0.85;
+        b.grp.position.y = b.startY + (b.targetY - b.startY) * e;
+        if (p >= 1) b.landed = true;
+      }
     });
-    orbMesh.material.opacity = 0.28 + bloomFactor * 0.08;
 
-    starMat.opacity = 0.24 + Math.sin(t * 0.10) * 0.06;
+    /* ₿ follows center box */
+    var cb = allBoxes[5 * 13 + 6];
+    btc.position.y = cb.grp.position.y + 0.55 / 2 + 0.38;
+    btc.rotation.y = t * 0.25;
+    gl.position.y  = btc.position.y - 0.1;
+    gl.intensity   = 2.5 + Math.sin(t * 2.2) * 0.8;
+    goldTextL.position.set(Math.cos(t * 0.9) * 2.2, btc.position.y + 0.6, Math.sin(t * 0.9) * 2.2);
+    goldTextL.intensity = 3.8 + Math.sin(t * 1.6) * 0.9;
 
-    camTx += (mx * 0.9 - camTx) * 0.022;
-    camTy += (-my * 0.6 - camTy) * 0.022;
-    camera.position.x = camTx;
-    camera.position.y = 0.6 + camTy;
+    /* Pulse ring */
+    pr.scale.setScalar(0.96 + Math.sin(t * 2) * 0.05);
+    pr.material.opacity = 0.25 + Math.sin(t * 1.8) * 0.18;
+    pr.position.y = btc.position.y - 0.35;
+
+    /* Camera orbit — slow, responsive radius */
+    var cp = camParams();
+    var ca = t * 0.10 + 0.4;
+    camera.fov = cp.fov;
+    camera.position.set(
+      Math.cos(ca) * cp.radius,
+      cp.height + Math.sin(t * 0.07) * 0.6,
+      Math.sin(ca) * cp.radius
+    );
+    camera.lookAt(0, cp.lookY, 0);
+    camera.updateProjectionMatrix();
+
+    /* Roaming key light */
+    pl1.position.x = Math.cos(t * 0.35) * 5;
+    pl1.position.z = Math.sin(t * 0.35) * 4;
+
+    renderer.render(scene, camera);
+  }
+  requestAnimationFrame(animate);
+
+  /* ── Rotating word ── */
+  if (window.gsap) {
+    var words = ['Smart', 'Elite', 'Pro', 'Strategic', 'Advanced'];
+    var wordEl = document.getElementById('hero-rw');
+    if (wordEl) {
+      var wIdx = 0;
+      function rotateWord() {
+        gsap.to(wordEl, {
+          opacity: 0, y: -14, filter: 'blur(6px)', duration: 0.45, ease: 'power2.in',
+          onComplete: function() {
+            wIdx = (wIdx + 1) % words.length;
+            wordEl.textContent = words[wIdx];
+            gsap.fromTo(wordEl,
+              { opacity: 0, y: 16, filter: 'blur(6px)' },
+              { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.55, ease: 'power2.out' }
+            );
+          }
+        });
+      }
+      setInterval(rotateWord, 3200);
+    }
+  }
+
+  /* ── Resize ── */
+  window.addEventListener('resize', function() {
+    renderer.setSize(W(), H());
+    camera.aspect = W() / H();
+    camera.updateProjectionMatrix();
+  });
+})();
+
+
+/* ════════════════════════════════════════════════════════════
+   ORB OVERLAY — Slide-in/orbit/slide-out scroll transition
+   Fixed overlay · triggered once on scroll · GSAP sequence
+════════════════════════════════════════════════════════════ */
+(function initOrbOverlay() {
+  var overlay = document.getElementById('orb-overlay-canvas');
+  if (!overlay || !window.THREE || !window.gsap) return;
+
+  function VW() { return window.innerWidth;  }
+  function VH() { return window.innerHeight; }
+
+  var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.3;
+  renderer.setSize(VW(), VH());
+  renderer.domElement.style.cssText = 'position:absolute;top:0;left:0;display:block';
+  overlay.appendChild(renderer.domElement);
+
+  var scene  = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(50, VW() / VH(), 0.1, 200);
+  camera.position.set(0, 4, 22);
+  camera.lookAt(0, 0, 0);
+
+  /* ── Lights ── */
+  scene.add(new THREE.AmbientLight(0x010310, 2));
+  var cL1 = new THREE.PointLight(0x1a3a8a, 9, 24); scene.add(cL1);
+  var cL2 = new THREE.PointLight(0x1a4a9a, 8, 21); scene.add(cL2);
+  var cL3 = new THREE.PointLight(0x1a3f8f, 8, 21); scene.add(cL3);
+  var rimL = new THREE.PointLight(0x0a1a4a, 4, 38);
+  rimL.position.set(-10, 8, -8); scene.add(rimL);
+
+  /* ── Spheres (larger than reference) ── */
+  function mkS(r, col, emis, eI, met, rou) {
+    return new THREE.Mesh(
+      new THREE.SphereGeometry(r, 48, 48),
+      new THREE.MeshStandardMaterial({ color: col, emissive: emis, emissiveIntensity: eI, metalness: met, roughness: rou })
+    );
+  }
+  var s1 = mkS(1.80, 0x0a1540, 0x1a3a8a, 1.4, 0.92, 0.07);
+  var s2 = mkS(1.45, 0x091230, 0x1a4a9a, 1.6, 0.88, 0.09);
+  var s3 = mkS(1.15, 0x070e25, 0x1a3f8f, 1.8, 0.95, 0.05);
+  scene.add(s1, s2, s3);
+
+  /* ── Vein rings (as children of each sphere so they travel with it) ── */
+  function mkVein(R, t, col, eI, rx, ry) {
+    var m = new THREE.Mesh(
+      new THREE.TorusGeometry(R, t, 8, 100),
+      new THREE.MeshStandardMaterial({
+        color: col, emissive: col, emissiveIntensity: eI,
+        transparent: true, opacity: 0.88, metalness: 0.1, roughness: 0.2
+      })
+    );
+    m.rotation.x = rx; m.rotation.y = ry; return m;
+  }
+  function buildVeins(parent, baseR) {
+    [[baseR, 0.026, 0x1a3a8a, 4.0, 0,           0          ],
+     [baseR, 0.020, 0x1a50aa, 3.5, Math.PI/2.5,  Math.PI/4 ],
+     [baseR, 0.016, 0x2060cc, 3.2, Math.PI/3,   -Math.PI/3 ],
+     [baseR, 0.013, 0x2a6acc, 2.8, Math.PI/1.8,  Math.PI/6 ]
+    ].forEach(function(c) { parent.add(mkVein(c[0]*1.01, c[1], c[2], c[3], c[4], c[5])); });
+  }
+  buildVeins(s1, 1.80);
+  buildVeins(s2, 1.45);
+  buildVeins(s3, 1.15);
+
+  /* ── Glow shells ── */
+  [[s1,2.06,0x1a3a8a],[s2,1.66,0x1a4a9a],[s3,1.32,0x1a3f8f]].forEach(function(d) {
+    d[0].add(new THREE.Mesh(
+      new THREE.SphereGeometry(d[1], 32, 32),
+      new THREE.MeshStandardMaterial({ color: d[2], emissive: d[2], emissiveIntensity: 0.5, transparent: true, opacity: 0.09 })
+    ));
+  });
+
+  /* ── Particles ── */
+  var pN = 200;
+  var pPos = new Float32Array(pN*3), pCol = new Float32Array(pN*3);
+  for (var pi = 0; pi < pN; pi++) {
+    var pr = 4+Math.random()*9, pth = Math.random()*Math.PI*2, pph = Math.acos(2*Math.random()-1);
+    pPos[pi*3]   = pr*Math.sin(pph)*Math.cos(pth);
+    pPos[pi*3+1] = pr*Math.sin(pph)*Math.sin(pth);
+    pPos[pi*3+2] = pr*Math.cos(pph);
+    var pb = 0.4+Math.random()*0.6;
+    pCol[pi*3]=0.08*pb; pCol[pi*3+1]=0.18*pb; pCol[pi*3+2]=0.55*pb;
+  }
+  var pGeo = new THREE.BufferGeometry();
+  pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+  pGeo.setAttribute('color',    new THREE.BufferAttribute(pCol, 3));
+  var pMat = new THREE.PointsMaterial({ size: 0.06, vertexColors: true, transparent: true, opacity: 0.8 });
+  scene.add(new THREE.Points(pGeo, pMat));
+
+  /* ── Slide offset (drives ball x position during enter/exit) ── */
+  var xOff = 22;  /* start off-screen right; negative = exit left */
+  var f    = 0;
+  var playing = false;
+
+  /* ── Statement text reveal ── */
+  var stSec  = document.getElementById('statement');
+  var stL1   = stSec ? stSec.querySelector('.statement-l1') : null;
+  var stL2   = stSec ? stSec.querySelector('.statement-l2') : null;
+  var stDone = false;
+  function revealText() {
+    if (stDone) return; stDone = true;
+    if (stL1) stL1.classList.add('vis');
+    if (stL2) stL2.classList.add('vis');
+  }
+
+  /* ── Play sequence once on trigger ── */
+  var triggered = false;
+  function play() {
+    if (triggered) return;
+    triggered = true;
+    playing   = true;
+
+    var proxy = { x: 22, op: 0 };
+
+    /* STEP 1 — slide in from right + fade overlay in */
+    gsap.to(proxy, {
+      x: 0, op: 1, duration: 0.38, ease: 'power3.out',
+      onUpdate: function() {
+        xOff = proxy.x;
+        overlay.style.opacity = proxy.op.toFixed(3);
+      },
+      onComplete: function() {
+        /* STEP 2 — orbit hold */
+        gsap.delayedCall(1.10, function() {
+          /* STEP 3 — slide out to left + fade overlay out */
+          gsap.to(proxy, {
+            x: -22, op: 0, duration: 0.38, ease: 'power3.in',
+            onUpdate: function() {
+              xOff = proxy.x;
+              overlay.style.opacity = proxy.op.toFixed(3);
+            },
+            onComplete: function() {
+              playing = false;
+              /* STEP 4 — reveal text immediately */
+              revealText();
+            }
+          });
+        });
+      }
+    });
+  }
+
+  /* ── Scroll trigger — fire when hero is 65% scrolled past ── */
+  var heroEl = document.querySelector('.hero');
+  window.addEventListener('scroll', function() {
+    if (triggered) return;
+    var heroH = heroEl ? heroEl.offsetHeight : VH();
+    if (window.scrollY > heroH * 0.65) play();
+  }, { passive: true });
+
+  /* ── Render loop ── */
+  function loop() {
+    requestAnimationFrame(loop);
+    if (!playing) return;
+    f++;
+
+    /* Orbit positions — 2× faster speeds, xOff drives slide */
+    s1.position.set(Math.cos(f*0.014)*6.0 + xOff, Math.sin(f*0.0084)*2.2, Math.sin(f*0.014)*4.2);
+    s2.position.set(Math.cos(f*0.022+2.1)*4.5 + xOff, Math.sin(f*0.0176+1)*1.8, Math.sin(f*0.022+2.1)*3.6);
+    s3.position.set(Math.cos(f*0.034+4.2)*3.2 + xOff, Math.sin(f*0.0374+2)*1.3, Math.sin(f*0.034+4.2)*2.9);
+
+    cL1.position.copy(s1.position); cL1.intensity = 8 + 3.0*Math.sin(f*0.08);
+    cL2.position.copy(s2.position); cL2.intensity = 7 + 2.5*Math.sin(f*0.10+1);
+    cL3.position.copy(s3.position); cL3.intensity = 6 + 2.5*Math.sin(f*0.12+2);
+
+    s1.material.emissiveIntensity = 1.0+0.6*Math.sin(f*0.08);
+    s2.material.emissiveIntensity = 1.1+0.6*Math.sin(f*0.10+1);
+    s3.material.emissiveIntensity = 1.2+0.7*Math.sin(f*0.12+2);
+
+    s1.rotation.y+=0.016; s1.rotation.x+=0.006;
+    s2.rotation.y-=0.020; s2.rotation.z+=0.008;
+    s3.rotation.y+=0.028; s3.rotation.x-=0.010;
+
+    /* Animate vein rings (children of each sphere) */
+    s1.children.forEach(function(v,i){ if(v.isMesh&&v.geometry.type==='TorusGeometry'){v.rotation.y+=0.024+i*0.008;v.rotation.z+=0.014+i*0.004;v.material.emissiveIntensity=3.0+2.0*Math.sin(f*0.09+i);} });
+    s2.children.forEach(function(v,i){ if(v.isMesh&&v.geometry.type==='TorusGeometry'){v.rotation.x+=0.018+i*0.006;v.rotation.y+=0.026+i*0.006;v.material.emissiveIntensity=3.0+2.0*Math.sin(f*0.11+i+1);} });
+    s3.children.forEach(function(v,i){ if(v.isMesh&&v.geometry.type==='TorusGeometry'){v.rotation.z+=0.022+i*0.006;v.rotation.x+=0.016+i*0.006;v.material.emissiveIntensity=3.5+2.0*Math.sin(f*0.13+i+2);} });
+
+    pMat.opacity = 0.6+0.2*Math.sin(f*0.03);
+
+    camera.position.x = Math.sin(f*0.006)*4;
+    camera.position.y = 4+Math.sin(f*0.004)*1.5;
+    camera.position.z = 22+Math.sin(f*0.005)*2;
     camera.lookAt(0, 0, 0);
 
     renderer.render(scene, camera);
   }
-  animate();
-
-  /* ── GSAP Bloom + ₿ Orbit Timeline ── */
-  if (!window.gsap) return;
-
-  var tl = gsap.timeline({ repeat: -1, repeatDelay: 1.8 });
-
-  /* ── Cycle reset at t=0 ── */
-  tl.call(function() {
-    if (orbitTween) { orbitTween.kill(); orbitTween = null; }
-    gsap.set(btcSprite.position, { x: 0, y: -0.40, z: 0 });
-    gsap.set(btcSprite.material, { opacity: 0 });
-    shimmers.forEach(function(sh) {
-      gsap.set(sh.sp.position, { x: 0, y: 0, z: 0 });
-      gsap.set(sh.sp.material, { opacity: 0 });
-    });
-    bloomFactor = 0;
-  }, [], 0);
-
-  /* Phase 1 — Petals open */
-  petals.forEach(function(p, i) {
-    tl.to(p.mesh.position, { x: p.dir.x * OPEN_D, z: p.dir.z * OPEN_D,
-      duration: 1.35, ease: 'power3.inOut' }, i * 0.10);
-  });
-
-  /* Phase 2 — Inner core materialises */
-  tl.to(innerMesh.scale, { x: 1, y: 1, z: 1,
-    duration: 0.85, ease: 'back.out(1.5)' }, 0.50);
-  tl.to(glowMesh.material, { opacity: 0.20,
-    duration: 0.75, ease: 'power2.out' }, 0.60);
-  tl.to(innerLight, { intensity: 5.5,
-    duration: 0.85, ease: 'power2.out' }, 0.60);
-  tl.to(keyLight,   { intensity: 8.0,
-    duration: 0.85, ease: 'power2.out' }, 0.60);
-  tl.to({ v: 0 }, { v: 1, duration: 0.85,
-    onUpdate: function() { bloomFactor = this.targets()[0].v; } }, 0.60);
-
-  /* Phase 3 — ₿ emerges from core, rises clear of globe */
-  tl.to(btcSprite.position, { y: 2.85, duration: 1.25, ease: 'power2.out' }, 0.92);
-  tl.to(btcSprite.material, { opacity: 1.0, duration: 0.55, ease: 'power2.out' }, 0.96);
-
-  /* Shimmer sparks at emergence */
-  shimmers.forEach(function(sh, i) {
-    var t0  = 1.05 + i * 0.024;
-    var rad = 0.70 + (i % 3) * 0.20;
-    tl.set(sh.sp.position, { x: 0, y: 0.2, z: 0 }, t0);
-    tl.set(sh.sp.material,  { opacity: 0 }, t0);
-    tl.to(sh.sp.position, {
-      x: Math.cos(sh.ang) * rad,
-      y: 0.2 + Math.sin(sh.ang * 0.6) * rad * 0.40,
-      z: Math.sin(sh.ang) * rad * 0.28,
-      duration: 0.80, ease: 'power2.out' }, t0);
-    tl.to(sh.sp.material, { opacity: 0.88, duration: 0.20, ease: 'none' }, t0);
-    tl.to(sh.sp.material, { opacity: 0,    duration: 0.58, ease: 'power2.in' }, t0 + 0.20);
-  });
-
-  /* Phase 4 — ₿ enters orbit above globe */
-  tl.call(function() {
-    var oy = btcSprite.position.y; /* capture Y after rise (≈2.85) */
-    var proxy = { a: 0 };
-    orbitTween = gsap.to(proxy, {
-      a: Math.PI * 2, duration: BTC_ORBIT_P,
-      ease: 'none', repeat: -1,
-      onUpdate: function() {
-        btcSprite.position.x = Math.cos(proxy.a) * BTC_ORBIT_R;
-        btcSprite.position.z = Math.sin(proxy.a) * BTC_ORBIT_R;
-        btcSprite.position.y = oy + Math.sin(proxy.a * 2) * 0.13;
-      }
-    });
-  }, [], 2.18);
-
-  /* Phase 4 hold — orbit for 2.6s */
-  tl.to({}, { duration: 2.6 }, 2.18);
-
-  /* Phase 5 — Kill orbit, ₿ descends back into globe */
-  tl.call(function() {
-    if (orbitTween) { orbitTween.kill(); orbitTween = null; }
-  }, [], 4.78);
-  tl.to(btcSprite.position, { x: 0, y: -0.40, z: 0,
-    duration: 1.15, ease: 'power2.inOut' }, 4.78);
-  tl.to(btcSprite.material, { opacity: 0,
-    duration: 0.65, ease: 'power2.in' }, 4.95);
-
-  /* Phase 6 — Core collapses, lights restore */
-  tl.to(glowMesh.material, { opacity: 0,  duration: 0.55, ease: 'power2.in' }, 4.78);
-  tl.to(innerLight,        { intensity: 0, duration: 0.55, ease: 'power2.in' }, 4.78);
-  tl.to(keyLight,          { intensity: 5.2, duration: 0.65, ease: 'power2.in' }, 4.78);
-  tl.to({ v: 1 }, { v: 0, duration: 0.65,
-    onUpdate: function() { bloomFactor = this.targets()[0].v; } }, 4.78);
-  tl.to(innerMesh.scale, { x: 0, y: 0, z: 0,
-    duration: 0.60, ease: 'power3.in' }, 4.92);
-
-  /* Phase 7 — Petals close, reverse stagger */
-  petals.slice().reverse().forEach(function(p, i) {
-    tl.to(p.mesh.position, { x: 0, z: 0,
-      duration: 1.05, ease: 'power3.inOut' }, 5.58 + i * 0.08);
-  });
-
-  /* ── Rotating word ── */
-  var words = ['Smart', 'Elite', 'Pro', 'Strategic', 'Advanced'];
-  var wordEl = document.getElementById('hero-rw');
-  if (!wordEl) return;
-  var wIdx = 0;
-  function rotateWord() {
-    gsap.to(wordEl, {
-      opacity: 0, y: -14, filter: 'blur(6px)', duration: 0.45, ease: 'power2.in',
-      onComplete: function() {
-        wIdx = (wIdx + 1) % words.length;
-        wordEl.textContent = words[wIdx];
-        gsap.fromTo(wordEl,
-          { opacity: 0, y: 16, filter: 'blur(6px)' },
-          { opacity: 1, y: 0,  filter: 'blur(0px)', duration: 0.55, ease: 'power2.out' }
-        );
-      }
-    });
-  }
-  setInterval(rotateWord, 3200);
+  loop();
 
   window.addEventListener('resize', function() {
-    W = hero.offsetWidth; H = hero.offsetHeight;
-    renderer.setSize(W, H); fitCamera();
-  });
-})();
-
-/* ════════════════════════════════════════════════════════════
-   STATEMENT — ASIMO-style 3D Robot  (Three.js + GSAP)
-   Walks in from right · stops · raises arm · points at text
-════════════════════════════════════════════════════════════ */
-(function initRobot() {
-  var wrap = document.getElementById('robot-canvas-wrap');
-  if (!wrap || !window.THREE) return;
-
-  var canvas = document.createElement('canvas');
-  canvas.setAttribute('aria-hidden', 'true');
-  canvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%';
-  wrap.appendChild(canvas);
-
-  var W = wrap.offsetWidth  || 900;
-  var H = Math.max(wrap.offsetHeight || 340, 280);
-
-  var renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-  renderer.setSize(W, H);
-
-  var scene = new THREE.Scene();
-  var camera = new THREE.PerspectiveCamera(42, W / H, 0.1, 80);
-  camera.position.set(0, 1.2, 8);
-  camera.lookAt(0, 0.5, 0);
-
-  /* ── Lighting ── */
-  scene.add(new THREE.AmbientLight(0x0e1e34, 1.6));
-  var keyL = new THREE.PointLight(0xcce8ff, 5.5, 22);
-  keyL.position.set(-1, 5, 7); scene.add(keyL);
-  var fillL = new THREE.PointLight(0x4488cc, 2.0, 16);
-  fillL.position.set(5, 2, 4); scene.add(fillL);
-  var rimL = new THREE.PointLight(0x22d3ee, 1.2, 12);
-  rimL.position.set(-3, -1, -4); scene.add(rimL);
-  var goldL = new THREE.PointLight(0xf59e0b, 1.4, 10);
-  goldL.position.set(4, 3, 3); scene.add(goldL);
-
-  /* ── Materials ── */
-  function wh()  { return new THREE.MeshStandardMaterial({ color: 0xedf1f8, metalness: 0.14, roughness: 0.28 }); }
-  function jt()  { return new THREE.MeshStandardMaterial({ color: 0xc4cad6, metalness: 0.26, roughness: 0.38 }); }
-  function dk()  { return new THREE.MeshStandardMaterial({ color: 0x0a1828, metalness: 0.82, roughness: 0.18, emissive: 0x082040, emissiveIntensity: 0.5 }); }
-  function ac()  { return new THREE.MeshBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.88, blending: THREE.AdditiveBlending }); }
-  function gd()  { return new THREE.MeshBasicMaterial({ color: 0xf59e0b, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending }); }
-
-  function mk(geo, mat, x, y, z, rx, ry, rz) {
-    var m = new THREE.Mesh(geo, mat);
-    m.position.set(x||0, y||0, z||0);
-    if (rx) m.rotation.x = rx;
-    if (ry) m.rotation.y = ry;
-    if (rz) m.rotation.z = rz;
-    return m;
-  }
-
-  /* ── Robot root ── */
-  var robotGroup = new THREE.Group();
-  scene.add(robotGroup);
-
-  /* LEGS — pivot at hip */
-  var lLeg = new THREE.Group(); lLeg.position.set(-0.165, 1.02, 0); robotGroup.add(lLeg);
-  var rLeg = new THREE.Group(); rLeg.position.set( 0.165, 1.02, 0); robotGroup.add(rLeg);
-  [lLeg, rLeg].forEach(function(g) {
-    g.add(mk(new THREE.CylinderGeometry(0.098, 0.088, 0.44, 11), wh(),  0, -0.22, 0));
-    g.add(mk(new THREE.SphereGeometry(0.094, 11, 10),              jt(),  0, -0.46, 0));
-    g.add(mk(new THREE.CylinderGeometry(0.086, 0.078, 0.42, 11),  wh(),  0, -0.70, 0));
-    g.add(mk(new THREE.SphereGeometry(0.080, 9, 9),                jt(),  0, -0.93, 0));
-    g.add(mk(new THREE.BoxGeometry(0.18, 0.090, 0.30),             wh(),  0, -1.00, 0.055));
-  });
-
-  /* PELVIS */
-  robotGroup.add(mk(new THREE.BoxGeometry(0.46, 0.17, 0.27), wh(), 0, 1.08, 0));
-
-  /* TORSO */
-  robotGroup.add(mk(new THREE.BoxGeometry(0.60, 0.58, 0.33), wh(), 0, 1.40, 0));
-  robotGroup.add(mk(new THREE.BoxGeometry(0.32, 0.09, 0.04), ac(), 0, 1.44, 0.18));
-  robotGroup.add(mk(new THREE.SphereGeometry(0.038, 8, 8),   gd(), 0, 1.29, 0.18));
-
-  /* ARMS — pivot at shoulder */
-  var lShl = new THREE.Group(); lShl.position.set(-0.38, 1.64, 0); robotGroup.add(lShl);
-  var rShl = new THREE.Group(); rShl.position.set( 0.38, 1.64, 0); robotGroup.add(rShl);
-  function buildArm(g, isRight) {
-    g.add(mk(new THREE.SphereGeometry(0.110, 11, 11),             jt()));
-    g.add(mk(new THREE.CylinderGeometry(0.083, 0.074, 0.40, 11), wh(), 0, -0.22, 0));
-    g.add(mk(new THREE.SphereGeometry(0.076, 9, 9),               jt(), 0, -0.44, 0));
-    g.add(mk(new THREE.CylinderGeometry(0.072, 0.064, 0.38, 11), wh(), 0, -0.64, 0));
-    g.add(mk(new THREE.SphereGeometry(0.080, 10, 10),             wh(), 0, -0.84, 0));
-    if (isRight) {
-      var fing = mk(new THREE.CylinderGeometry(0.018, 0.014, 0.22, 7), wh(), -0.14, -0.84, 0, 0, 0, Math.PI / 2);
-      g.add(fing);
-      g.add(mk(new THREE.SphereGeometry(0.024, 7, 7), gd(), -0.27, -0.84, 0));
-    }
-  }
-  buildArm(lShl, false);
-  buildArm(rShl, true);
-
-  /* NECK */
-  robotGroup.add(mk(new THREE.CylinderGeometry(0.090, 0.106, 0.20, 10), jt(), 0, 1.76, 0));
-
-  /* HEAD */
-  var headGrp = new THREE.Group(); headGrp.position.set(0, 1.98, 0); robotGroup.add(headGrp);
-  headGrp.add(mk(new THREE.SphereGeometry(0.272, 14, 12),             wh(), 0, 0.06, 0));
-  headGrp.add(mk(new THREE.CylinderGeometry(0.268, 0.262, 0.05, 14), wh(), 0, -0.04, 0));
-  headGrp.add(mk(new THREE.BoxGeometry(0.37, 0.16, 0.04),             dk(), 0, 0.07, 0.24));
-  headGrp.add(mk(new THREE.BoxGeometry(0.28, 0.11, 0.02),             jt(), 0, -0.13, 0.24));
-  headGrp.add(mk(new THREE.BoxGeometry(0.44, 0.21, 0.04),             jt(), 0, 0.05, -0.24));
-  [-0.08, 0.08].forEach(function(ex) {
-    headGrp.add(mk(new THREE.SphereGeometry(0.022, 8, 8), ac(), ex, 0.07, 0.27));
-  });
-
-  /* Start off-screen right */
-  robotGroup.position.set(9.5, 0, 0);
-
-  /* ── Step-based walk ── */
-  var STEP_DUR  = 0.40;
-  var STEP_DIST = 0.65;
-  var TARGET_X  = 3.0;
-
-  function settle() {
-    gsap.to(robotGroup.rotation, { z: 0, duration: 0.3 });
-    gsap.to(lLeg.rotation, { x: 0, duration: 0.35 });
-    gsap.to(rLeg.rotation, { x: 0, duration: 0.35 });
-    gsap.to(lShl.rotation, { x: 0, duration: 0.35 });
-    gsap.to(rShl.rotation, { x: 0, z: 0, duration: 0.35 });
-    gsap.to(robotGroup.position, { y: 0, duration: 0.5 });
-    gsap.delayedCall(0.5, function() {
-      gsap.to(robotGroup.rotation, { y: -0.50, duration: 0.8 });
-      gsap.to(headGrp.rotation, { y: -0.15, duration: 0.8 });
-      gsap.delayedCall(0.5, function() {
-        gsap.to(rShl.rotation, { z: -1.08, duration: 0.9, ease: 'back.out(1.2)' });
-        gsap.to(rShl.rotation, { x: -0.14, duration: 0.7, delay: 0.1 });
-      });
-      gsap.delayedCall(1.6, function() {
-        gsap.to(headGrp.rotation, { x: 0.06, duration: 2.4, ease: 'sine.inOut', yoyo: true, repeat: -1 });
-        gsap.to(robotGroup.position, { y: 0.03, duration: 3.0, ease: 'sine.inOut', yoyo: true, repeat: -1 });
-        gsap.to(lShl.rotation, { x: -0.05, duration: 2.0, ease: 'sine.inOut', yoyo: true, repeat: -1 });
-      });
-    });
-  }
-
-  function takeStep(stepNum, curX, onDone) {
-    if (curX <= TARGET_X) { if (onDone) onDone(); return; }
-    var nextX = Math.max(curX - STEP_DIST, TARGET_X);
-    var isLeft = stepNum % 2 === 0;
-    var swingLeg  = isLeft ? lLeg  : rLeg;
-    var stanceLeg = isLeft ? rLeg  : lLeg;
-    var swingArm  = isLeft ? rShl  : lShl;
-    var stanceArm = isLeft ? lShl  : rShl;
-
-    /* Advance x by one step */
-    gsap.to(robotGroup.position, {
-      x: nextX, duration: STEP_DUR, ease: 'linear',
-      onComplete: function() { takeStep(stepNum + 1, nextX, onDone); }
-    });
-
-    /* Swing leg: lift forward then plant */
-    var swTL = gsap.timeline();
-    swTL.to(swingLeg.rotation, { x: -0.44, duration: STEP_DUR * 0.55, ease: 'power2.out' });
-    swTL.to(swingLeg.rotation, { x:  0.06, duration: STEP_DUR * 0.45, ease: 'power2.in'  });
-
-    /* Stance leg: push back then recover */
-    var stTL = gsap.timeline();
-    stTL.to(stanceLeg.rotation, { x: 0.28, duration: STEP_DUR * 0.55, ease: 'sine.out' });
-    stTL.to(stanceLeg.rotation, { x: 0.02, duration: STEP_DUR * 0.45, ease: 'sine.in'  });
-
-    /* Body bob — slight rise then fall each step */
-    var bobTL = gsap.timeline();
-    bobTL.to(robotGroup.position, { y: 0.05, duration: STEP_DUR * 0.35, ease: 'power2.out' });
-    bobTL.to(robotGroup.position, { y: 0.00, duration: STEP_DUR * 0.35, ease: 'power2.in'  });
-    bobTL.to(robotGroup.position, { y: 0.03, duration: STEP_DUR * 0.15, ease: 'power2.out' });
-    bobTL.to(robotGroup.position, { y: 0.00, duration: STEP_DUR * 0.15, ease: 'power2.in'  });
-
-    /* Arm swing (opposite to leg) */
-    gsap.to(swingArm.rotation,  { x: -0.26, duration: STEP_DUR, ease: 'sine.inOut' });
-    gsap.to(stanceArm.rotation, { x:  0.26, duration: STEP_DUR, ease: 'sine.inOut' });
-
-    /* Slight lateral sway */
-    gsap.to(robotGroup.rotation, {
-      z: isLeft ? 0.022 : -0.022, duration: STEP_DUR, ease: 'sine.inOut'
-    });
-  }
-
-  var entryDone = false;
-  function startEntry() {
-    if (entryDone || !window.gsap) return;
-    entryDone = true;
-    takeStep(0, 9.5, settle);
-  }
-
-  /* Trigger on scroll into view */
-  if (window.IntersectionObserver) {
-    new IntersectionObserver(function(ent) {
-      if (ent[0].isIntersecting) startEntry();
-    }, { threshold: 0.2 }).observe(wrap);
-  } else {
-    setTimeout(startEntry, 600);
-  }
-
-  /* Render loop — pauses when off-screen */
-  var rActive = false;
-  if (window.IntersectionObserver) {
-    new IntersectionObserver(function(e) { rActive = e[0].isIntersecting; }, { threshold: 0.05 }).observe(wrap);
-  } else { rActive = true; }
-
-  function robotLoop() {
-    requestAnimationFrame(robotLoop);
-    if (!rActive) return;
-    renderer.render(scene, camera);
-  }
-  robotLoop();
-
-  window.addEventListener('resize', function() {
-    W = wrap.offsetWidth; H = Math.max(wrap.offsetHeight || 340, 280);
-    renderer.setSize(W, H); camera.aspect = W / H; camera.updateProjectionMatrix();
-  });
-})();
-
-/* ── Statement section reveal ── */
-(function() {
-  var sec = document.getElementById('statement');
-  if (!sec) return;
-  var l1 = sec.querySelector('.statement-l1');
-  var l2 = sec.querySelector('.statement-l2');
-  if (window.IntersectionObserver) {
-    var obs = new IntersectionObserver(function(entries) {
-      if (entries[0].isIntersecting) {
-        l1.classList.add('vis');
-        l2.classList.add('vis');
-        obs.disconnect();
-      }
-    }, { threshold: 0.35 });
-    obs.observe(sec);
-  } else {
-    l1.classList.add('vis'); l2.classList.add('vis');
-  }
-})();
-
-</script>
-</body>
-</html
-
-
-
-
-
-
-/* ════════════════════════════════════════════════════════════
-   STATEMENT — ASIMO-style 3D Robot  (Three.js + GSAP)
-   Walks in from right · stops · raises arm · points at text
-════════════════════════════════════════════════════════════ */
-(function initRobot() {
-  var wrap = document.getElementById('robot-canvas-wrap');
-  if (!wrap || !window.THREE) return;
-
-  var canvas = document.createElement('canvas');
-  canvas.setAttribute('aria-hidden', 'true');
-  canvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%';
-  wrap.appendChild(canvas);
-
-  var W = wrap.offsetWidth  || 900;
-  var H = Math.max(wrap.offsetHeight || 340, 280);
-
-  var renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-  renderer.setSize(W, H);
-
-  var scene = new THREE.Scene();
-  /* Camera sees full width; robot will end up on right third */
-  var camera = new THREE.PerspectiveCamera(42, W / H, 0.1, 80);
-  camera.position.set(0, 1.2, 8);
-  camera.lookAt(0, 0.5, 0);
-
-  /* ── Natural robot lighting ── */
-  scene.add(new THREE.AmbientLight(0x0e1e34, 1.6));
-  var keyL = new THREE.PointLight(0xcce8ff, 5.5, 22);
-  keyL.position.set(-1, 5, 7);
-  scene.add(keyL);
-  var fillL = new THREE.PointLight(0x4488cc, 2.0, 16);
-  fillL.position.set(5, 2, 4);
-  scene.add(fillL);
-  var rimL = new THREE.PointLight(0x22d3ee, 1.2, 12);
-  rimL.position.set(-3, -1, -4);
-  scene.add(rimL);
-  var goldL = new THREE.PointLight(0xf59e0b, 1.4, 10);
-  goldL.position.set(4, 3, 3);
-  scene.add(goldL);
-
-  /* ── Materials (cloned per mesh for GSAP compatibility) ── */
-  function wh()  { return new THREE.MeshStandardMaterial({ color: 0xedf1f8, metalness: 0.14, roughness: 0.28 }); }
-  function jt()  { return new THREE.MeshStandardMaterial({ color: 0xc4cad6, metalness: 0.26, roughness: 0.38 }); }
-  function dk()  { return new THREE.MeshStandardMaterial({ color: 0x0a1828, metalness: 0.82, roughness: 0.18, emissive: 0x082040, emissiveIntensity: 0.5 }); }
-  function ac()  { return new THREE.MeshBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.88, blending: THREE.AdditiveBlending }); }
-  function gd()  { return new THREE.MeshBasicMaterial({ color: 0xf59e0b, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending }); }
-
-  /* ── Mesh helper ── */
-  function mk(geo, mat, x, y, z, rx, ry, rz) {
-    var m = new THREE.Mesh(geo, mat);
-    m.position.set(x||0, y||0, z||0);
-    if (rx) m.rotation.x = rx;
-    if (ry) m.rotation.y = ry;
-    if (rz) m.rotation.z = rz;
-    return m;
-  }
-
-  /* ── Robot root ── */
-  var robotGroup = new THREE.Group();
-  scene.add(robotGroup);
-
-  /* === LEGS — pivot at hip (y=1.02) === */
-  var lLeg = new THREE.Group(); lLeg.position.set(-0.165, 1.02, 0); robotGroup.add(lLeg);
-  var rLeg = new THREE.Group(); rLeg.position.set( 0.165, 1.02, 0); robotGroup.add(rLeg);
-
-  [lLeg, rLeg].forEach(function(g) {
-    g.add(mk(new THREE.CylinderGeometry(0.098, 0.088, 0.44, 11), wh(),  0, -0.22, 0));
-    g.add(mk(new THREE.SphereGeometry(0.094, 11, 10),              jt(),  0, -0.46, 0));
-    g.add(mk(new THREE.CylinderGeometry(0.086, 0.078, 0.42, 11),  wh(),  0, -0.70, 0));
-    g.add(mk(new THREE.SphereGeometry(0.080, 9, 9),                jt(),  0, -0.93, 0));
-    var foot = mk(new THREE.BoxGeometry(0.18, 0.090, 0.30),        wh(),  0, -1.00, 0.055);
-    g.add(foot);
-  });
-
-  /* === PELVIS === */
-  robotGroup.add(mk(new THREE.BoxGeometry(0.46, 0.17, 0.27), wh(), 0, 1.08, 0));
-
-  /* === TORSO === */
-  robotGroup.add(mk(new THREE.BoxGeometry(0.60, 0.58, 0.33), wh(), 0, 1.40, 0));
-  /* Chest glow strip + dot */
-  robotGroup.add(mk(new THREE.BoxGeometry(0.32, 0.09, 0.04), ac(), 0, 1.44, 0.18));
-  robotGroup.add(mk(new THREE.SphereGeometry(0.038, 8, 8),   gd(), 0, 1.29, 0.18));
-
-  /* === ARMS — pivot at shoulder (y=1.64) === */
-  var lShl = new THREE.Group(); lShl.position.set(-0.38, 1.64, 0); robotGroup.add(lShl);
-  var rShl = new THREE.Group(); rShl.position.set( 0.38, 1.64, 0); robotGroup.add(rShl);
-
-  function buildArm(g, isRight) {
-    g.add(mk(new THREE.SphereGeometry(0.110, 11, 11),              jt()));
-    g.add(mk(new THREE.CylinderGeometry(0.083, 0.074, 0.40, 11),  wh(), 0, -0.22, 0));
-    g.add(mk(new THREE.SphereGeometry(0.076, 9, 9),                jt(), 0, -0.44, 0));
-    g.add(mk(new THREE.CylinderGeometry(0.072, 0.064, 0.38, 11),  wh(), 0, -0.64, 0));
-    g.add(mk(new THREE.SphereGeometry(0.080, 10, 10),              wh(), 0, -0.84, 0));
-    if (isRight) {
-      /* Pointing finger extends in robot-local -X (toward left/text) */
-      var fing = mk(new THREE.CylinderGeometry(0.018, 0.014, 0.22, 7), wh(), 0, -0.84, 0, 0, 0, Math.PI / 2);
-      fing.position.set(-0.14, -0.84, 0);
-      g.add(fing);
-      g.add(mk(new THREE.SphereGeometry(0.024, 7, 7), gd(), -0.27, -0.84, 0));
-    }
-  }
-  buildArm(lShl, false);
-  buildArm(rShl, true);
-
-  /* === NECK === */
-  robotGroup.add(mk(new THREE.CylinderGeometry(0.090, 0.106, 0.20, 10), jt(), 0, 1.76, 0));
-
-  /* === HEAD === */
-  var headGrp = new THREE.Group(); headGrp.position.set(0, 1.98, 0); robotGroup.add(headGrp);
-  headGrp.add(mk(new THREE.SphereGeometry(0.272, 14, 12),              wh(), 0, 0.06, 0));
-  headGrp.add(mk(new THREE.CylinderGeometry(0.268, 0.262, 0.05, 14),  wh(), 0, -0.04, 0));
-  headGrp.add(mk(new THREE.BoxGeometry(0.37, 0.16, 0.04),              dk(), 0, 0.07, 0.24));
-  headGrp.add(mk(new THREE.BoxGeometry(0.28, 0.11, 0.02),              jt(), 0, -0.13, 0.24));
-  headGrp.add(mk(new THREE.BoxGeometry(0.44, 0.21, 0.04),              jt(), 0, 0.05, -0.24));
-  [-0.08, 0.08].forEach(function(ex) {
-    headGrp.add(mk(new THREE.SphereGeometry(0.022, 8, 8), ac(), ex, 0.07, 0.27));
-  });
-
-  /* Start off-screen right */
-  robotGroup.position.set(10.5, 0, 0);
-
-  /* ── Walk-in + point animation (fires once on scroll) ── */
-  var entryDone = false;
-  function startEntry() {
-    if (entryDone || !window.gsap) return;
-    entryDone = true;
-
-    var WALK  = 2.4;   /* seconds to walk in */
-    var STEP  = 0.36;  /* one step duration  */
-    var STEPS = Math.ceil(WALK / (STEP * 2)) + 1;
-
-    /* Walk into right-side position */
-    gsap.to(robotGroup.position, { x: 3.0, duration: WALK, ease: 'power1.out' });
-
-    /* Leg alternation during walk */
-    for (var s = 0; s < STEPS; s++) {
-      (function(i) {
-        var tL = i * STEP * 2, tR = tL + STEP;
-        gsap.to(lLeg.rotation, { x:  0.38, duration: STEP, ease: 'sine.inOut', yoyo: true, repeat: 1, delay: tL });
-        gsap.to(rLeg.rotation, { x: -0.38, duration: STEP, ease: 'sine.inOut', yoyo: true, repeat: 1, delay: tR });
-        /* Arm swing opposes leg */
-        gsap.to(rShl.rotation, { x:  0.24, duration: STEP, ease: 'sine.inOut', yoyo: true, repeat: 1, delay: tL });
-        gsap.to(lShl.rotation, { x: -0.24, duration: STEP, ease: 'sine.inOut', yoyo: true, repeat: 1, delay: tR });
-      })(s);
-    }
-    /* Subtle body bob */
-    gsap.to(robotGroup.position, { y: 0.06, duration: STEP, ease: 'sine.inOut', yoyo: true,
-      repeat: Math.ceil(WALK / STEP) });
-
-    /* After walk: turn toward text, raise & point right arm */
-    gsap.delayedCall(WALK + 0.25, function() {
-      /* Slight turn left (toward text) */
-      gsap.to(robotGroup.rotation, { y: -0.48, duration: 0.8, ease: 'power2.out' });
-      /* Reset arm swing */
-      gsap.to(lShl.rotation, { x: 0, duration: 0.4, ease: 'power2.out' });
-      gsap.to(rShl.rotation, { x: 0, duration: 0.4, ease: 'power2.out' });
-      /* Raise right arm: z = -1.05 lifts arm toward horizontal pointing left */
-      gsap.to(rShl.rotation, { z: -1.05, duration: 0.85, ease: 'back.out(1.3)', delay: 0.35 });
-      gsap.to(rShl.rotation, { x: -0.12, duration: 0.65, ease: 'power2.out',    delay: 0.40 });
-
-      /* Idle loop */
-      gsap.delayedCall(1.4, function() {
-        gsap.to(headGrp.rotation, { x: 0.07, duration: 2.2, ease: 'sine.inOut', yoyo: true, repeat: -1 });
-        gsap.to(robotGroup.position, { y: 0.04, duration: 2.9, ease: 'sine.inOut', yoyo: true, repeat: -1 });
-        gsap.to(lShl.rotation, { x: -0.06, duration: 2.0, ease: 'sine.inOut', yoyo: true, repeat: -1 });
-      });
-    });
-  }
-
-  /* Trigger entry on scroll into view */
-  if (window.IntersectionObserver) {
-    new IntersectionObserver(function(ent) {
-      if (ent[0].isIntersecting) startEntry();
-    }, { threshold: 0.2 }).observe(wrap);
-  } else {
-    setTimeout(startEntry, 600);
-  }
-
-  /* Render loop — pauses when off-screen */
-  var rActive = false;
-  if (window.IntersectionObserver) {
-    new IntersectionObserver(function(e) { rActive = e[0].isIntersecting; }, { threshold: 0.05 }).observe(wrap);
-  } else { rActive = true; }
-
-  function robotLoop() {
-    requestAnimationFrame(robotLoop);
-    if (!rActive) return;
-    renderer.render(scene, camera);
-  }
-  robotLoop();
-
-  window.addEventListener('resize', function() {
-    W = wrap.offsetWidth; H = Math.max(wrap.offsetHeight || 340, 280);
-    renderer.setSize(W, H); camera.aspect = W / H; camera.updateProjectionMatrix();
+    renderer.setSize(VW(), VH());
+    camera.aspect = VW() / VH();
+    camera.updateProjectionMatrix();
   });
 })();
 
