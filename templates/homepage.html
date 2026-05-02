@@ -540,7 +540,7 @@ footer{position:relative;z-index:1;border-top:1px solid var(--border);background
 
 
 /* ── STATEMENT SECTION ── */
-#statement{padding:28px 48px 80px;position:relative;min-height:520px;display:flex;align-items:center;gap:48px;overflow:hidden}
+#statement{padding:28px 48px 80px;position:relative;min-height:100vh;display:flex;align-items:center;gap:48px}
 @media(max-width:960px){#statement{flex-direction:column-reverse;padding:32px 20px 56px;min-height:auto;gap:32px}}
 @media(max-width:640px){#statement{padding:24px 16px 48px}}
 /* ── SCROLL REVEAL system ── */
@@ -549,15 +549,12 @@ footer{position:relative;z-index:1;border-top:1px solid var(--border);background
 .sr-d1{transition-delay:.10s}.sr-d2{transition-delay:.20s}.sr-d3{transition-delay:.30s}.sr-d4{transition-delay:.40s}.sr-d5{transition-delay:.50s}
 .statement-left{flex:1;min-width:0;z-index:1}
 .statement-wrap{max-width:600px}
-.statement-l1{font-size:clamp(1.15rem,2.5vw,1.72rem);font-weight:700;line-height:1.6;color:var(--text);margin:0 0 28px;text-align:left;opacity:0;transform:translateY(22px);transition:opacity .85s cubic-bezier(.22,1,.36,1),transform .85s cubic-bezier(.22,1,.36,1)}
-.statement-l2{font-size:clamp(0.92rem,1.7vw,1.12rem);font-weight:400;line-height:1.8;color:rgba(180,200,225,.72);margin:0;text-align:left;opacity:0;transform:translateY(22px);transition:opacity .85s .16s cubic-bezier(.22,1,.36,1),transform .85s .16s cubic-bezier(.22,1,.36,1)}
-.statement-l1.vis,.statement-l2.vis{opacity:1;transform:translateY(0)}
+.statement-l1{font-size:clamp(1.15rem,2.5vw,1.72rem);font-weight:700;line-height:1.6;color:var(--text);margin:0 0 28px;text-align:left}
+.statement-l2{font-size:clamp(0.92rem,1.7vw,1.12rem);font-weight:400;line-height:1.8;color:rgba(180,200,225,.72);margin:0;text-align:left}
 @media(max-width:960px){.statement-l1,.statement-l2{text-align:center}}
-@media(prefers-reduced-motion:reduce){.statement-l1,.statement-l2{transition:none;opacity:1;transform:none}}
-#statement-3d-canvas{flex:0 0 440px;height:440px;position:relative;overflow:hidden;opacity:0;transform:translateX(50px);transition:opacity 0.8s cubic-bezier(.22,1,.36,1),transform 0.8s cubic-bezier(.22,1,.36,1)}
-#statement-3d-canvas.vis{opacity:1;transform:translateX(0)}
+#statement-3d-canvas{flex:0 0 440px;height:440px;position:relative;overflow:hidden}
 #statement-3d-canvas canvas{position:absolute;top:0;left:0;display:block;width:100%;height:100%}
-@media(max-width:960px){#statement-3d-canvas{flex:none;width:100%;max-width:400px;height:320px;margin:0 auto;transform:translateY(30px)}#statement-3d-canvas.vis{transform:translateY(0)}}
+@media(max-width:960px){#statement-3d-canvas{flex:none;width:100%;max-width:400px;height:320px;margin:0 auto}}
 @media(max-width:480px){#statement-3d-canvas{height:260px}}
 .stmt-hl{
   background:linear-gradient(90deg,#f59e0b,#fbbf24 60%,#f97316);
@@ -2518,19 +2515,14 @@ function lwStartBounce(){
   }
   loop();
 
-  /* ── Canvas entry: fade in from right, activate render loop ── */
+  /* ── Activate 3D render loop when section is in view ── */
   var stSec = document.getElementById('statement');
 
   if ('IntersectionObserver' in window) {
-    var obs = new IntersectionObserver(function(entries) {
-      if (!entries[0].isIntersecting) return;
-      obs.disconnect();
-      container.classList.add('vis');
-      active = true;
-    }, { threshold: 0.20 });
-    obs.observe(stSec || container);
+    new IntersectionObserver(function(entries) {
+      active = entries[0].isIntersecting;
+    }, { threshold: 0.05 }).observe(stSec || container);
   } else {
-    container.classList.add('vis');
     active = true;
   }
 
@@ -2605,25 +2597,94 @@ function lwStartBounce(){
 
 })();
 
-/* ── Statement text scroll reveal ── */
-(function stmtTextReveal() {
-  var sec = document.getElementById('statement');
-  var l1  = sec ? sec.querySelector('.statement-l1') : null;
-  var l2  = sec ? sec.querySelector('.statement-l2') : null;
-  if (!l1) return;
 
-  function reveal() {
-    l1.classList.add('vis');
-    if (l2) l2.classList.add('vis');
+/* ── Statement cinematic scroll (GSAP + ScrollTrigger) ── */
+(function initStatementScroll() {
+  if (!window.gsap || !window.ScrollTrigger) return;
+  gsap.registerPlugin(ScrollTrigger);
+
+  var sec    = document.getElementById('statement');
+  var canvas = document.getElementById('statement-3d-canvas');
+  var l1     = sec ? sec.querySelector('.statement-l1') : null;
+  var l2     = sec ? sec.querySelector('.statement-l2') : null;
+  if (!sec || !canvas || !l1) return;
+
+  var mm = gsap.matchMedia ? gsap.matchMedia() : null;
+
+  function buildDesktop() {
+    /* Initial states — GSAP owns opacity/transform/filter */
+    gsap.set(canvas, { opacity: 0, scale: 1.42, filter: 'blur(18px)' });
+    gsap.set(l1,     { opacity: 0, y: 32, filter: 'blur(8px)' });
+    if (l2) gsap.set(l2, { opacity: 0, y: 32, filter: 'blur(8px)' });
+
+    var tl = gsap.timeline({
+      scrollTrigger: {
+        trigger:      sec,
+        start:        'top top',
+        end:          '+=220%',
+        pin:          true,
+        scrub:        1.2,
+        anticipatePin: 1,
+        /* Keep 3D loop running while pinned */
+        onEnter:      function() {},
+        onLeaveBack:  function() {},
+      }
+    });
+
+    /* Phase 1 (0 → 0.46): 3D canvas emerges — zoom from depth */
+    tl.to(canvas, {
+      opacity: 1, scale: 1, filter: 'blur(0px)',
+      duration: 0.46, ease: 'power2.out'
+    }, 0);
+
+    /* Phase 2 (0.52 → 0.80): text reveals — staggered fade+blur+rise */
+    tl.to(l1, {
+      opacity: 1, y: 0, filter: 'blur(0px)',
+      duration: 0.28, ease: 'power2.out'
+    }, 0.52);
+    if (l2) {
+      tl.to(l2, {
+        opacity: 1, y: 0, filter: 'blur(0px)',
+        duration: 0.28, ease: 'power2.out'
+      }, 0.68);
+    }
+
+    /* Tail hold (0.96 → 1.0) */
+    tl.to({}, { duration: 0.04 }, 0.96);
   }
 
-  if ('IntersectionObserver' in window) {
-    var obs = new IntersectionObserver(function(entries) {
-      if (entries[0].isIntersecting) { obs.disconnect(); reveal(); }
-    }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
-    obs.observe(sec);
+  function buildMobile() {
+    gsap.set(canvas, { opacity: 0, scale: 1.16 });
+    gsap.set(l1,     { opacity: 0, y: 22 });
+    if (l2) gsap.set(l2, { opacity: 0, y: 22 });
+
+    var tl = gsap.timeline({
+      scrollTrigger: {
+        trigger: sec,
+        start:   'top 78%',
+        end:     'top 20%',
+        scrub:   0.8,
+      }
+    });
+    tl.to(canvas, { opacity: 1, scale: 1, duration: 0.5, ease: 'power2.out' }, 0);
+    tl.to(l1,     { opacity: 1, y: 0,    duration: 0.4, ease: 'power2.out' }, 0.45);
+    if (l2) tl.to(l2, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }, 0.62);
+  }
+
+  /* Reduced-motion: show everything immediately */
+  var prefersReduced = window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (prefersReduced) {
+    gsap.set([canvas, l1, l2 || canvas], { opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' });
+    return;
+  }
+
+  if (mm) {
+    mm.add('(min-width: 961px)', buildDesktop);
+    mm.add('(max-width: 960px)', buildMobile);
   } else {
-    reveal();
+    /* Fallback for older GSAP builds without matchMedia */
+    if (window.innerWidth >= 961) { buildDesktop(); } else { buildMobile(); }
   }
 })();
 
