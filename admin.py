@@ -1018,3 +1018,37 @@ def intelligence_auto_resolver_settings():
         db.session.rollback()
         return jsonify({"ok": False, "error": str(_e)}), 500
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Phase 6B.5 — Resolver diagnostic audit (read-only, dry-run counterfactuals)
+# GET /admin/intelligence/resolver-audit
+# Params: limit (default 20, max 100), module, timeframe, pair, result_filter
+# ─────────────────────────────────────────────────────────────────────────────
+@admin_bp.route("/intelligence/resolver-audit", methods=["GET"])
+@admin_required
+def intelligence_resolver_audit():
+    try:
+        from resolver_audit import audit_resolver_outcomes
+
+        try:
+            limit = min(int(request.args.get("limit", 20)), 100)
+        except (TypeError, ValueError):
+            limit = 20
+
+        module        = request.args.get("module")        or None
+        timeframe     = request.args.get("timeframe")     or None
+        pair          = request.args.get("pair")          or None
+        result_filter = request.args.get("result_filter") or None
+
+        result = audit_resolver_outcomes(
+            limit=limit,
+            module=module,
+            timeframe=timeframe,
+            pair=pair,
+            result_filter=result_filter,
+        )
+        return jsonify(result)
+
+    except Exception as _e:
+        return jsonify({"ok": False, "error": str(_e)}), 500
+

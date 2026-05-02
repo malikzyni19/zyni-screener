@@ -114,6 +114,45 @@
          padding:9px 13px;border-radius:7px;font-size:11px;margin-top:10px;display:none}
 .car-subtitle{font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.5}
 @media(max-width:600px){.car-controls{grid-template-columns:1fr;gap:6px}}
+
+/* ── Resolver Audit ── */
+.aud-controls{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:14px}
+.aud-filter-group{display:flex;flex-direction:column;gap:4px}
+.aud-filter-group label{font-size:10px;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;font-weight:600}
+.aud-filter-group input,.aud-filter-group select{
+  background:var(--bg2);border:1px solid var(--border);color:var(--text);
+  padding:5px 9px;border-radius:7px;font-size:12px;font-family:inherit;width:110px}
+.aud-filter-group input:focus,.aud-filter-group select:focus{outline:none;border-color:var(--cyan)}
+.aud-summary-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:16px}
+.aud-sum-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;text-align:center}
+.aud-sum-label{font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-weight:600;margin-bottom:4px}
+.aud-sum-val{font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace}
+.aud-sum-val.green{color:var(--green)} .aud-sum-val.red{color:var(--red)}
+.aud-sum-val.amber{color:var(--amber)} .aud-sum-val.cyan{color:var(--cyan)}
+.aud-sum-val.muted{color:var(--muted)}
+.aud-signal-row td{vertical-align:top;padding:7px 10px;font-size:11px;border-bottom:1px solid rgba(255,255,255,.04)}
+.aud-signal-row:hover td{background:rgba(255,255,255,.02);cursor:pointer}
+.aud-outcome-badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.5px}
+.aud-outcome-badge.win{background:rgba(34,197,94,.15);color:var(--green)}
+.aud-outcome-badge.loss{background:rgba(248,113,113,.15);color:var(--red)}
+.aud-outcome-badge.exp{background:rgba(148,163,184,.1);color:var(--muted)}
+.aud-outcome-badge.amb{background:rgba(245,158,11,.1);color:var(--amber)}
+.aud-outcome-badge.wait{background:rgba(34,211,238,.1);color:var(--cyan)}
+.aud-cf-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;font-size:10px;margin-top:4px}
+.aud-cf-cell{background:rgba(255,255,255,.03);border-radius:5px;padding:4px 7px}
+.aud-cf-label{color:var(--muted);font-size:9px;letter-spacing:.5px;text-transform:uppercase}
+.aud-cf-val{font-weight:600;margin-top:2px}
+.aud-cf-val.win{color:var(--green)} .aud-cf-val.loss{color:var(--red)}
+.aud-cf-val.exp{color:var(--muted)} .aud-cf-val.amb{color:var(--amber)}
+.aud-trace-wrap{display:none;margin-top:8px;padding:8px 10px;background:rgba(0,0,0,.2);
+                border-radius:6px;border-left:2px solid var(--cyan)}
+.aud-trace-line{font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;
+                line-height:1.7;white-space:pre-wrap;word-break:break-all}
+.aud-trace-line.hit{color:var(--green)} .aud-trace-line.stop{color:var(--red)}
+.aud-trace-line.exp{color:var(--muted)} .aud-trace-line.entry{color:var(--cyan)}
+#aud-error{background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);color:var(--red);
+           padding:12px 16px;border-radius:8px;font-size:12px;margin-top:12px;display:none}
+#aud-result{margin-top:4px;display:none}
 </style>
 
 <!-- Header -->
@@ -257,6 +296,68 @@
     <div id="car-save-error"  class="car-err"></div>
 
     <div id="car-status"></div>
+  </div>
+</div>
+
+<!-- Resolver Audit -->
+<div class="adm-card" style="margin-bottom:20px">
+  <div class="adm-card-header">
+    <span class="adm-card-title">Resolver Audit</span>
+    <span style="font-size:10px;color:var(--muted);margin-left:10px">diagnostic dry-run — never modifies DB</span>
+  </div>
+  <div class="adm-card-body">
+    <p class="car-subtitle">Run counterfactual analysis to diagnose WON/LOST/EXPIRED outcomes. Each signal is replayed with 4 variants: current (wick-stop), small-target, close-stop, and candle-close-entry.</p>
+    <div class="aud-controls">
+      <div class="aud-filter-group">
+        <label>Limit</label>
+        <input type="number" id="aud-limit" value="20" min="1" max="100" style="width:70px">
+      </div>
+      <div class="aud-filter-group">
+        <label>Module</label>
+        <select id="aud-module">
+          <option value="">all</option>
+          <option value="ob">ob</option>
+          <option value="fvg">fvg</option>
+          <option value="bb">bb</option>
+        </select>
+      </div>
+      <div class="aud-filter-group">
+        <label>Timeframe</label>
+        <select id="aud-timeframe">
+          <option value="">all</option>
+          <option value="15m">15m</option>
+          <option value="30m">30m</option>
+          <option value="1h">1h</option>
+          <option value="4h">4h</option>
+          <option value="1d">1d</option>
+        </select>
+      </div>
+      <div class="aud-filter-group">
+        <label>Result Filter</label>
+        <select id="aud-result-filter">
+          <option value="">all</option>
+          <option value="won">won</option>
+          <option value="lost">lost</option>
+          <option value="expired">expired</option>
+          <option value="ambiguous">ambiguous</option>
+          <option value="waiting">waiting</option>
+        </select>
+      </div>
+      <button type="button" id="aud-run-btn" class="int-btn">🔬 Run Audit</button>
+    </div>
+    <div id="aud-error"></div>
+    <div id="aud-result">
+      <div id="aud-summary"></div>
+      <div class="adm-table-wrap" id="aud-table-wrap" style="display:none">
+        <table class="adm-table" style="table-layout:auto">
+          <thead><tr>
+            <th>Pair</th><th>TF</th><th>Module</th><th>Dir</th>
+            <th>Current</th><th>Counterfactuals</th><th style="width:28px"></th>
+          </tr></thead>
+          <tbody id="aud-tbody"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -888,6 +989,172 @@ function intAr_onVisibilityChange() {
   }
 }
 
+/* ── Resolver Audit ── */
+var intAud_running = false;
+
+function intAud_outcomeClass(r) {
+  if (!r) return 'muted';
+  var v = (r + '').toLowerCase();
+  if (v === 'won')       return 'win';
+  if (v === 'lost')      return 'loss';
+  if (v === 'expired')   return 'exp';
+  if (v === 'ambiguous') return 'amb';
+  return 'wait';
+}
+
+function intAud_renderSummary(summary) {
+  var el = document.getElementById('aud-summary');
+  if (!el) return;
+  var cards = [
+    { label: 'Checked',      val: summary.checked          || 0, cls: 'cyan'  },
+    { label: 'Would WIN',    val: summary.would_win        || 0, cls: 'green' },
+    { label: 'Would LOSS',   val: summary.would_loss       || 0, cls: 'red'   },
+    { label: 'Would EXP',    val: summary.would_expire     || 0, cls: 'muted' },
+    { label: 'Ambiguous',    val: summary.would_ambiguous  || 0, cls: 'amber' },
+    { label: 'No Entry Yet', val: summary.no_entry_yet     || 0, cls: 'muted' },
+    { label: 'Errors',       val: summary.errors           || 0, cls: summary.errors ? 'red' : 'muted' },
+  ];
+  var html = '<div class="aud-summary-grid">';
+  for (var i = 0; i < cards.length; i++) {
+    var c = cards[i];
+    html += '<div class="aud-sum-card"><div class="aud-sum-label">' + c.label + '</div>';
+    html += '<div class="aud-sum-val ' + c.cls + '">' + c.val + '</div></div>';
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function intAud_cfLabel(key) {
+  if (key === 'current_wick_stop')      return 'Current';
+  if (key.indexOf('small_target') === 0) return 'SmallTgt';
+  if (key === 'close_stop')             return 'CloseStop';
+  if (key === 'candle_close_entry')     return 'CCEntry';
+  return key;
+}
+
+function intAud_escHtml(s) {
+  return (s + '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function intAud_toggleTrace(idx) {
+  var traceRow   = document.getElementById('aud-trace-' + idx);
+  var traceInner = document.getElementById('aud-trace-inner-' + idx);
+  if (!traceRow) return;
+  var visible = traceRow.style.display !== 'none';
+  traceRow.style.display = visible ? 'none' : '';
+  if (traceInner) { traceInner.style.display = visible ? 'none' : 'block'; }
+}
+
+function intAud_renderSignals(signals) {
+  var tbody = document.getElementById('aud-tbody');
+  var wrap  = document.getElementById('aud-table-wrap');
+  if (!tbody || !wrap) return;
+  if (!signals || signals.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:18px">No signals matched filters.</td></tr>';
+    wrap.style.display = 'block';
+    return;
+  }
+  var cfKeys = ['current_wick_stop', 'small_target', 'close_stop', 'candle_close_entry'];
+  var rows = '';
+  for (var i = 0; i < signals.length; i++) {
+    var s = signals[i];
+    var cur = s.current_result || '—';
+    var curCls = intAud_outcomeClass(cur);
+    rows += '<tr class="aud-signal-row" onclick="intAud_toggleTrace(' + i + ')">';
+    rows += '<td style="font-family:\'JetBrains Mono\',monospace;font-size:11px">' + intAud_escHtml(s.pair || '—') + '</td>';
+    rows += '<td>' + intAud_escHtml(s.timeframe || '—') + '</td>';
+    rows += '<td>' + intAud_escHtml(s.module || '—') + '</td>';
+    rows += '<td>' + intAud_escHtml(s.direction || '—') + '</td>';
+    rows += '<td><span class="aud-outcome-badge ' + curCls + '">' + intAud_escHtml(cur) + '</span></td>';
+    var cf = s.counterfactuals || {};
+    var cfHtml = '<div class="aud-cf-grid">';
+    for (var j = 0; j < cfKeys.length; j++) {
+      var key = cfKeys[j];
+      var cfVal = null;
+      if (cf[key] !== undefined) {
+        cfVal = cf[key];
+      } else {
+        for (var k in cf) {
+          if (k.indexOf(key) === 0) { cfVal = cf[k]; break; }
+        }
+      }
+      var cfResult = cfVal ? (cfVal.result || '—') : '—';
+      var cfCls = intAud_outcomeClass(cfResult);
+      cfHtml += '<div class="aud-cf-cell"><div class="aud-cf-label">' + intAud_cfLabel(key) + '</div>';
+      cfHtml += '<div class="aud-cf-val ' + cfCls + '">' + intAud_escHtml(cfResult) + '</div></div>';
+    }
+    cfHtml += '</div>';
+    rows += '<td>' + cfHtml + '</td>';
+    rows += '<td style="text-align:center;font-size:14px;color:var(--muted)">&#9654;</td>';
+    rows += '</tr>';
+    rows += '<tr id="aud-trace-' + i + '" style="display:none"><td colspan="7" style="padding:0 10px 10px">';
+    rows += '<div class="aud-trace-wrap" id="aud-trace-inner-' + i + '">';
+    var traceLines = (s.trace && s.trace.current_wick_stop) ? s.trace.current_wick_stop : [];
+    for (var t = 0; t < traceLines.length; t++) {
+      var line = traceLines[t];
+      var lineCls = '';
+      if (line.indexOf('TARGET') !== -1 || line.indexOf('WON') !== -1)    lineCls = 'hit';
+      else if (line.indexOf('STOP') !== -1 || line.indexOf('LOST') !== -1) lineCls = 'stop';
+      else if (line.indexOf('EXPIR') !== -1)                               lineCls = 'exp';
+      else if (line.indexOf('ENTRY') !== -1)                               lineCls = 'entry';
+      rows += '<div class="aud-trace-line ' + lineCls + '">' + intAud_escHtml(line) + '</div>';
+    }
+    if (traceLines.length === 0) {
+      rows += '<div class="aud-trace-line">No trace available.</div>';
+    }
+    rows += '</div></td></tr>';
+  }
+  tbody.innerHTML = rows;
+  wrap.style.display = 'block';
+}
+
+function intAud_runAudit() {
+  if (intAud_running) return;
+  var errEl     = document.getElementById('aud-error');
+  var resultEl  = document.getElementById('aud-result');
+  var runBtn    = document.getElementById('aud-run-btn');
+  var tbody     = document.getElementById('aud-tbody');
+  var wrap      = document.getElementById('aud-table-wrap');
+  var summaryEl = document.getElementById('aud-summary');
+
+  if (errEl)    { errEl.style.display = 'none'; errEl.textContent = ''; }
+  if (resultEl) { resultEl.style.display = 'none'; }
+  if (runBtn)   { runBtn.textContent = '⏳ Running…'; runBtn.disabled = true; }
+  if (tbody)    { tbody.innerHTML = ''; }
+  if (wrap)     { wrap.style.display = 'none'; }
+  if (summaryEl){ summaryEl.innerHTML = ''; }
+
+  var limit   = (document.getElementById('aud-limit')         || {}).value || '20';
+  var module  = (document.getElementById('aud-module')        || {}).value || '';
+  var tf      = (document.getElementById('aud-timeframe')     || {}).value || '';
+  var rFilter = (document.getElementById('aud-result-filter') || {}).value || '';
+
+  var url = '/admin/intelligence/resolver-audit?limit=' + encodeURIComponent(limit);
+  if (module)  url += '&module='        + encodeURIComponent(module);
+  if (tf)      url += '&timeframe='     + encodeURIComponent(tf);
+  if (rFilter) url += '&result_filter=' + encodeURIComponent(rFilter);
+
+  intAud_running = true;
+  fetch(url, { credentials: 'same-origin' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      intAud_running = false;
+      if (runBtn) { runBtn.textContent = '🔬 Run Audit'; runBtn.disabled = false; }
+      if (!data.ok) {
+        if (errEl) { errEl.textContent = data.error || 'Audit failed'; errEl.style.display = 'block'; }
+        return;
+      }
+      if (resultEl) { resultEl.style.display = 'block'; }
+      intAud_renderSummary(data.summary || {});
+      intAud_renderSignals(data.signals  || []);
+    })
+    .catch(function(err) {
+      intAud_running = false;
+      if (runBtn) { runBtn.textContent = '🔬 Run Audit'; runBtn.disabled = false; }
+      if (errEl) { errEl.textContent = 'Network error: ' + (err.message || ''); errEl.style.display = 'block'; }
+    });
+}
+
 /* Wire button + initial load.
    readyState check handles both: script runs before or after DOMContentLoaded. */
 function intSt_init() {
@@ -922,6 +1189,8 @@ function intSt_init() {
   if (carEnabled) { carEnabled.addEventListener('change', intCar_updateWarnings); }
   var carMode = document.getElementById('car-mode');
   if (carMode) { carMode.addEventListener('change', intCar_updateWarnings); }
+  var audBtn = document.getElementById('aud-run-btn');
+  if (audBtn) { audBtn.addEventListener('click', intAud_runAudit); }
   intCar_fetchSettings();
   intSt_fetchStats();
 }
