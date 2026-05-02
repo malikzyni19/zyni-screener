@@ -1035,10 +1035,16 @@ def intelligence_resolver_audit():
         except (TypeError, ValueError):
             limit = 20
 
-        module        = request.args.get("module")        or None
-        timeframe     = request.args.get("timeframe")     or None
-        pair          = request.args.get("pair")          or None
-        result_filter = request.args.get("result_filter") or None
+        module        = request.args.get("module")    or None
+        timeframe     = request.args.get("timeframe") or None
+        pair          = request.args.get("pair")      or None
+        # Accept both ?result= (UI/docs) and ?result_filter= (legacy) — result wins
+        result_filter = (
+            request.args.get("result") or
+            request.args.get("result_filter") or
+            None
+        )
+        compact = request.args.get("compact", "0") in ("1", "true", "yes")
 
         result = audit_resolver_outcomes(
             limit=limit,
@@ -1046,6 +1052,7 @@ def intelligence_resolver_audit():
             timeframe=timeframe,
             pair=pair,
             result_filter=result_filter,
+            compact=compact,
         )
         return jsonify(result)
 

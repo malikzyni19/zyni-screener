@@ -229,9 +229,10 @@ def _run_traced(
 
         if hit_target:
             target_val = c_high if is_bullish else c_low
+            op         = ">=" if is_bullish else "<="
             trace.append(
                 f"[{candle_label}] TARGET HIT: "
-                f"{'high' if is_bullish else 'low'}={target_val:.6g} >= "
+                f"{'high' if is_bullish else 'low'}={target_val:.6g} {op} "
                 f"target={target_price:.6g}"
             )
             return (
@@ -318,24 +319,40 @@ def _run_traced(
 # Public audit function — call inside active Flask app context
 # ─────────────────────────────────────────────────────────────────────────────
 
+_COMPACT_FIELDS = frozenset({
+    "pair", "module", "timeframe", "direction",
+    "final_result", "result_reason", "detected_at",
+    "entry_time", "entry_price", "target_price", "stop_price",
+    "exit_time", "exit_price",
+    "target_hit_before_stop", "stop_hit_before_target", "same_candle_entry_stop",
+    "counterfactuals", "decision_trace",
+})
+
+# Maps ?result= value → set of audit statuses that match
+_FILTER_STATUSES = {
+    "lost":      {"LOST"},
+    "won":       {"WON"},
+    "expired":   {"EXPIRED"},
+    "ambiguous": {"AMBIGUOUS"},
+    "no_entry":  {"WAITING_FOR_ENTRY"},
+}
+
+
 def audit_resolver_outcomes(
     limit: int = 50,
     module: str = None,
     timeframe: str = None,
     pair: str = None,
     result_filter: str = None,   # "lost"|"won"|"expired"|"ambiguous"|"no_entry"|"all"|None
+    compact: bool = False,
 ) -> dict:
     """
     Dry-run diagnostic audit. Must be called inside an active Flask app context.
     Never commits to DB. Never mutates SignalEvent or SignalOutcome.
 
     Returns:
-        {ok, mode, filters, summary, signals}
+        {ok, mode, filters, summary_all, summary_filtered, signals}
     """
-    _FILTER_MAP = {
-        "lost": "LOST", "won": "WON", "expired": "EXPIRED",
-        "ambiguous": "AMBIGUOUS", "no_entry": "WAITING_FOR_ENTRY",
-    }
     try:
         from models import db, SignalEvent, SignalOutcome
         from main import get_klines_exchange
@@ -353,15 +370,22 @@ def audit_resolver_outcomes(
         cap = max(1, min(int(limit), 100))
         signals = q.order_by(SignalEvent.detected_at.desc()).limit(cap).all()
 
-        summary = {
+        summary_all = {
             "checked": 0,
-            "would_win": 0, "would_loss": 0, "would_expire": 0,
-            "would_ambiguous": 0, "no_entry_yet": 0,
-            "still_entered": 0, "errors": 0,
+            "won": 0, "lost": 0, "expired": 0,
+            "ambiguous": 0, "waiting_for_entry": 0,
+            "entered": 0, "errors": 0,
         }
 
-        target_status = _FILTER_MAP.get(result_filter) if result_filter and result_filter != "all" else None
+        # Normalise filter — "all" or None → no filtering
+        rf = (result_filter or "").strip().lower()
+        rf = rf if rf and rf != "all" else None
+        target_statuses = _FILTER_STATUSES.get(rf) if rf else None
+
         audit_list = []
+
+        def _iso(dt):
+            return dt.isoformat() if dt else None
 
         for ev in signals:
             try:
@@ -373,9 +397,9 @@ def audit_resolver_outcomes(
                 )
                 small_b = _SMALL_BOUNCE.get(ev.timeframe, round(bounce * 0.6, 4))
 
-                detected_ms  = _ts_ms(ev.detected_at)
-                fetch_limit  = EXPIRY_CANDLES.get(ev.timeframe, 12) + 30
-                exchange     = ev.exchange or "binance"
+                detected_ms = _ts_ms(ev.detected_at)
+                fetch_limit = EXPIRY_CANDLES.get(ev.timeframe, 12) + 30
+                exchange    = ev.exchange or "binance"
 
                 try:
                     candles = get_klines_exchange(
@@ -385,34 +409,33 @@ def audit_resolver_outcomes(
                     candles = []
 
                 if not candles:
-                    summary["errors"] += 1
+                    summary_all["errors"] += 1
                     audit_list.append({
-                        "signal_id": ev.signal_id,
                         "pair": ev.pair, "module": ev.module,
                         "timeframe": ev.timeframe, "direction": ev.direction,
-                        "db_status": ev.status, "error": "no_candle_data",
+                        "final_result": "ERROR", "result_reason": "no_candle_data",
                     })
                     continue
 
-                # ── Current rules ────────────────────────────────────────
+                # ── Current rules ─────────────────────────────────────────
                 res, trace, first5 = _run_traced(
                     ev.zone_high, ev.zone_low, ev.direction,
                     bounce, detected_ms, candles, ev.timeframe,
                     stop_mode="wick", entry_price_mode="zone",
                 )
 
-                # ── Counterfactuals (silent, no trace needed) ────────────
-                res_small, _, _  = _run_traced(
+                # ── Counterfactuals (silent, no trace) ────────────────────
+                res_small, _, _ = _run_traced(
                     ev.zone_high, ev.zone_low, ev.direction,
                     small_b, detected_ms, candles, ev.timeframe,
                     stop_mode="wick", entry_price_mode="zone",
                 )
-                res_close, _, _  = _run_traced(
+                res_close, _, _ = _run_traced(
                     ev.zone_high, ev.zone_low, ev.direction,
                     bounce, detected_ms, candles, ev.timeframe,
                     stop_mode="close", entry_price_mode="zone",
                 )
-                res_cce, _, _    = _run_traced(
+                res_cce, _, _   = _run_traced(
                     ev.zone_high, ev.zone_low, ev.direction,
                     bounce, detected_ms, candles, ev.timeframe,
                     stop_mode="wick", entry_price_mode="candle_close",
@@ -420,23 +443,20 @@ def audit_resolver_outcomes(
 
                 cur = res["status"]
 
-                # ── Tally summary (all queried, before filter) ────────────
-                summary["checked"] += 1
-                if   cur == "WON":              summary["would_win"]       += 1
-                elif cur == "LOST":             summary["would_loss"]      += 1
-                elif cur == "EXPIRED":          summary["would_expire"]    += 1
-                elif cur == "AMBIGUOUS":        summary["would_ambiguous"] += 1
-                elif cur == "WAITING_FOR_ENTRY":summary["no_entry_yet"]    += 1
-                elif cur == "ENTERED":          summary["still_entered"]   += 1
+                # ── Tally summary_all (before filter) ─────────────────────
+                summary_all["checked"] += 1
+                if   cur == "WON":               summary_all["won"]               += 1
+                elif cur == "LOST":              summary_all["lost"]              += 1
+                elif cur == "EXPIRED":           summary_all["expired"]           += 1
+                elif cur == "AMBIGUOUS":         summary_all["ambiguous"]         += 1
+                elif cur == "WAITING_FOR_ENTRY": summary_all["waiting_for_entry"] += 1
+                elif cur == "ENTERED":           summary_all["entered"]           += 1
 
                 # ── Apply result filter ───────────────────────────────────
-                if target_status and cur != target_status:
+                if target_statuses and cur not in target_statuses:
                     continue
 
-                def _iso(dt):
-                    return dt.isoformat() if dt else None
-
-                audit_list.append({
+                entry = {
                     "signal_id":      ev.signal_id,
                     "pair":           ev.pair,
                     "module":         ev.module,
@@ -448,7 +468,6 @@ def audit_resolver_outcomes(
                     "zone_low":       ev.zone_low,
                     "bounce_threshold_pct": bounce,
                     "db_status":      ev.status,
-                    # ── Audit result (current rules) ──────────────────────
                     "entry_found":    res["entry_price"] is not None,
                     "entry_time":     _iso(res.get("entry_time")),
                     "entry_price":    res.get("entry_price"),
@@ -461,37 +480,49 @@ def audit_resolver_outcomes(
                     "same_candle_entry_stop": res.get("same_candle_entry_stop", False),
                     "target_hit_before_stop": cur == "WON",
                     "stop_hit_before_target": cur == "LOST",
-                    "mfe_pct":        res.get("mfe_pct"),
-                    "mae_pct":        res.get("mae_pct"),
-                    "candles_checked":res.get("candles_checked", 0),
+                    "mfe_pct":         res.get("mfe_pct"),
+                    "mae_pct":         res.get("mae_pct"),
+                    "candles_checked": res.get("candles_checked", 0),
                     "first_5_relevant_candles": first5,
-                    "decision_trace": trace,
-                    # ── Counterfactuals ───────────────────────────────────
+                    "decision_trace":  trace,
                     "counterfactuals": {
-                        "current_wick_stop":   cur,
-                        f"small_target_{int(round(small_b*100,1)*10):03d}pct": res_small["status"],
-                        "close_stop":          res_close["status"],
-                        "candle_close_entry":  res_cce["status"],
+                        "current_wick_stop":  cur,
+                        f"small_target_{int(round(small_b * 100, 1) * 10):03d}pct": res_small["status"],
+                        "close_stop":         res_close["status"],
+                        "candle_close_entry": res_cce["status"],
                     },
-                })
+                }
+
+                if compact:
+                    entry = {k: v for k, v in entry.items() if k in _COMPACT_FIELDS}
+
+                audit_list.append(entry)
 
             except Exception as _sig_err:
-                summary["errors"] += 1
+                summary_all["errors"] += 1
                 audit_list.append({
-                    "signal_id": getattr(ev, "signal_id", "?"),
-                    "pair":      getattr(ev, "pair",      "?"),
-                    "error":     str(_sig_err),
+                    "pair":         getattr(ev, "pair",      "?"),
+                    "final_result": "ERROR",
+                    "result_reason": str(_sig_err),
                 })
 
         return {
-            "ok":      True,
-            "mode":    "audit_dry_run",
+            "ok":   True,
+            "mode": "audit_dry_run",
             "filters": {
-                "module": module, "timeframe": timeframe,
-                "pair":   pair,   "result":    result_filter,
+                "module":    module,
+                "timeframe": timeframe,
+                "pair":      pair,
+                "result":    rf or "all",
+                "limit":     cap,
+                "compact":   compact,
             },
-            "summary":  summary,
-            "signals":  audit_list,
+            "summary_all": summary_all,
+            "summary_filtered": {
+                "result":   rf or "all",
+                "returned": len(audit_list),
+            },
+            "signals": audit_list,
         }
 
     except Exception as _outer:
