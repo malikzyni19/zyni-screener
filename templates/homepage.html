@@ -65,19 +65,21 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;overf
 /* ── NAV ── */
 nav{position:relative;z-index:90;display:flex;align-items:center;justify-content:space-between;padding:12px 28px;border-bottom:1px solid var(--border);background:var(--nav-bg);backdrop-filter:blur(16px);gap:10px}
 /* ── ZyNi SMC brand — premium animated identity ── */
-.nav-logo{font-family:'Outfit',sans-serif;font-size:20px;font-weight:800;text-decoration:none;display:flex;align-items:center;gap:10px;letter-spacing:0px;animation:navBreathe 7s ease-in-out infinite;flex-shrink:0}
-@keyframes navBreathe{0%,100%{transform:scale(1)}50%{transform:scale(1.013)}}
-.nav-logo-zyni{background:linear-gradient(135deg,var(--text) 0%,#22d3ee 60%,#a5f3fc 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:zyniGlow 5s ease-in-out infinite alternate}
-@keyframes zyniGlow{from{filter:drop-shadow(0 0 4px rgba(34,211,238,0.10))}to{filter:drop-shadow(0 0 10px rgba(34,211,238,0.38))}}
-.nav-logo-smc{background:linear-gradient(135deg,#92400e 0%,#f59e0b 40%,#fde68a 60%,#f97316 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;position:relative;overflow:visible;animation:smcGlow 4s ease-in-out infinite alternate}
-@keyframes smcGlow{from{filter:drop-shadow(0 0 5px rgba(251,191,36,0.25))}to{filter:drop-shadow(0 0 14px rgba(251,191,36,0.65)) drop-shadow(0 0 28px rgba(245,158,11,0.18))}}
-.nav-logo-smc::after{content:'';position:absolute;top:0;left:-120%;width:55%;height:100%;background:linear-gradient(105deg,transparent 0%,rgba(255,255,255,0.45) 50%,transparent 100%);animation:smcSweep 6.5s ease-in-out infinite;pointer-events:none}
-@keyframes smcSweep{0%,68%{left:-120%}82%{left:150%}100%{left:150%}}
+.nav-logo{font-family:'Outfit',sans-serif;font-size:20px;font-weight:800;text-decoration:none;display:flex;align-items:center;gap:10px;letter-spacing:0px;animation:navBreathe 3.8s ease-in-out infinite;flex-shrink:0}
+@keyframes navBreathe{0%,100%{transform:scale(1)}50%{transform:scale(1.018)}}
+.nav-logo-zyni{background:linear-gradient(135deg,var(--text) 0%,#22d3ee 60%,#a5f3fc 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;position:relative;overflow:visible;animation:zyniGlow 2.4s ease-in-out infinite alternate}
+@keyframes zyniGlow{from{filter:drop-shadow(0 0 5px rgba(34,211,238,0.30))}to{filter:drop-shadow(0 0 14px rgba(34,211,238,0.80)) drop-shadow(0 0 26px rgba(34,211,238,0.32))}}
+.nav-logo-zyni::after{content:'';position:absolute;top:-10%;left:-130%;width:65%;height:120%;background:linear-gradient(105deg,transparent 0%,rgba(180,240,255,0.14) 28%,rgba(255,255,255,0.88) 50%,rgba(180,240,255,0.14) 72%,transparent 100%);animation:zyniSweep 3.5s ease-in-out infinite 1.85s;pointer-events:none}
+@keyframes zyniSweep{0%,65%{left:-130%}80%{left:160%}100%{left:160%}}
+.nav-logo-smc{background:linear-gradient(135deg,#92400e 0%,#f59e0b 40%,#fde68a 60%,#f97316 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;position:relative;overflow:visible;animation:smcGlow 2s ease-in-out infinite alternate}
+@keyframes smcGlow{from{filter:drop-shadow(0 0 6px rgba(251,191,36,0.42))}to{filter:drop-shadow(0 0 18px rgba(251,191,36,0.88)) drop-shadow(0 0 36px rgba(245,158,11,0.38))}}
+.nav-logo-smc::after{content:'';position:absolute;top:-10%;left:-130%;width:65%;height:120%;background:linear-gradient(105deg,transparent 0%,rgba(255,230,140,0.14) 28%,rgba(255,255,255,0.92) 50%,rgba(255,230,140,0.14) 72%,transparent 100%);animation:smcSweep 3.5s ease-in-out infinite;pointer-events:none}
+@keyframes smcSweep{0%,65%{left:-130%}80%{left:160%}100%{left:160%}}
 .nav-logo-dot{width:10px;height:10px;border-radius:50%;background:#22c55e;box-shadow:0 0 10px #22c55e;animation:blink 2s infinite;flex-shrink:0}
 .nav-tag{font-size:9px;color:var(--text3);letter-spacing:3px;font-family:'DM Sans',sans-serif;-webkit-text-fill-color:var(--text3)}
 /* Letter-level micro-float wave */
-.nl{display:inline-block;animation:nlWave 3.8s ease-in-out infinite;animation-delay:calc(var(--d,0) * 110ms)}
-@keyframes nlWave{0%,100%{transform:translateY(0)}50%{transform:translateY(-2.5px)}}
+.nl{display:inline-block;animation:nlWave 2.2s ease-in-out infinite;animation-delay:calc(var(--d,0) * 75ms)}
+@keyframes nlWave{0%,100%{transform:translateY(0)}50%{transform:translateY(-3.8px)}}
 /* Each inline-block letter needs its own gradient so -webkit-background-clip:text renders correctly */
 .nav-logo-zyni .nl{background:linear-gradient(135deg,var(--text) 0%,#22d3ee 60%,#a5f3fc 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .nav-logo-smc .nl{background:linear-gradient(135deg,#92400e 0%,#f59e0b 40%,#fde68a 60%,#f97316 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
